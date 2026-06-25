@@ -82,6 +82,13 @@ class RelaticsExtractor:
             col_list=prop_rels_one
         )
         
+        # make sure all columns are type str
+        elem_insts_df = elem_insts_df.astype(str)
+        prop_insts_df = prop_insts_df.astype(str)
+        prop_rel_insts_one_df = prop_rel_insts_one_df.astype(str)
+        rel_insts_one_df = rel_insts_one_df.astype(str)
+    
+        
         # merge element df with properties and to one relations
         tables[element] = (
             elem_insts_df
@@ -270,17 +277,21 @@ class RelaticsExtractor:
         return df
             
     def _create_rename_map(self, df: pd.DataFrame) -> Dict:
-        duplicates = df[df[self.r2_element_col].duplicated(keep=False)]
-        duplicates[self.r2_element_col] = duplicates[self.relation_col] + "_" + duplicates[self.r2_element_col]
+        if self.r2_element_col in df.columns:
+            duplicates = df[df[self.r2_element_col].duplicated(keep=False)]
+            duplicates[self.r2_element_col] = duplicates[self.relation_col] + "_" + duplicates[self.r2_element_col]
 
-        map = pd.Series(duplicates[self.r2_element_col].values,index=duplicates[self.relation_id_col]).to_dict()
+            rename_map = pd.Series(duplicates[self.r2_element_col].values,index=duplicates[self.relation_id_col]).to_dict()
+            
+            self_ref = df[df[self.r1_element_col] == df[self.r2_element_col]]
+            self_ref[self.r2_element_col] = self_ref[self.relation_col] + "_" + self_ref[self.r2_element_col]
+            
+            rename_map.update(pd.Series(self_ref[self.r2_element_col].values,index=self_ref[self.relation_id_col]).to_dict())
         
-        self_ref = df[df[self.r1_element_col] == df[self.r2_element_col]]
-        self_ref[self.r2_element_col] = self_ref[self.relation_col] + "_" + self_ref[self.r2_element_col]
+        else:
+            rename_map = {}
         
-        map.update(pd.Series(self_ref[self.r2_element_col].values,index=self_ref[self.relation_id_col]).to_dict())
-        
-        return map
+        return rename_map
 
     def _create_link_table(self, df: pd.DataFrame) -> pd.DataFrame:
         
@@ -301,7 +312,10 @@ class RelaticsExtractor:
         return df[df[self.relation_col] == "Heeft property"], df[df[self.relation_col] != "Heeft property"]
     
     def _transform_df(self, df: pd.DataFrame, values: str, columns: str, col_list: list) -> pd.DataFrame:
-        if set([values,columns]).issubset(df.columns):
+        required_columns = {values,columns}
+        required_columns.update(self.base_cols)
+        
+        if required_columns.issubset(df.columns):
             
             df.rename(columns=self.base_col_map)
             
