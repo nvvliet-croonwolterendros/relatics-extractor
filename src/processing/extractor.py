@@ -88,9 +88,9 @@ class RelaticsExtractor:
         prop_rel_insts_one_df = prop_rel_insts_one_df.astype(str)
         rel_insts_one_df = rel_insts_one_df.astype(str)
     
-        
         # merge element df with properties and to one relations
-        tables[element] = (
+        table_name = f"raw_relatics__{element}"
+        tables[table_name] = (
             elem_insts_df
             .merge(prop_insts_df, on=["guid", "naam"], how="left")
             .merge(prop_rel_insts_one_df, on=["guid", "naam"], how="left")
@@ -99,7 +99,7 @@ class RelaticsExtractor:
 
         # get link tables
         for r2_element in rels_many:
-            table_name = f"{element}_{r2_element}"
+            table_name = f"raw_relatics__{element}_{r2_element}"
             
             tables[table_name] = self._get_link_table(
                 rel_insts_many_df,
