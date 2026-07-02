@@ -63,23 +63,11 @@ def build_schema_from_tables(
     for table_name, df in tables.items():
 
         columns = {
-            "guid": "STRING",
-            "workspace_id": "STRING",
             "snapshot_date": "STRING",            
         }
 
         for column in df.columns:
-            if pd.api.types.is_integer_dtype(df[column]):
-                columns[column] = "LONG"
-
-            elif pd.api.types.is_float_dtype(df[column]):
-                columns[column] = "DOUBLE"
-
-            elif pd.api.types.is_bool_dtype(df[column]):
-                columns[column] = "BOOLEAN"
-
-            else:
-                columns[column] = "STRING"
+            columns[column] = "STRING"
 
         schema_def.append(
             {
@@ -89,6 +77,8 @@ def build_schema_from_tables(
             }
         )
 
+    log.info(f"Schema: {schema_def}")
+    
     return schema_def
 
 
@@ -149,6 +139,10 @@ def update(configuration: dict, state: dict):
             log.info(
                 f"Processing {table_name}: {len(df)} rows"
                 f"with {len(df)} records"
+            )
+            
+            log.info(
+                f"Colums: {df.columns}"
             )
 
             df = df.copy()
