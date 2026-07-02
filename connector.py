@@ -55,7 +55,7 @@ def infer_primary_key(df: pd.DataFrame) -> list:
     """
 
     if "guid" in df.columns:
-        return ["guid", "workspace_id", "snapshot_date"]
+        return ["guid", "workspace_id"]
 
     guid_columns = [
         col
@@ -66,7 +66,7 @@ def infer_primary_key(df: pd.DataFrame) -> list:
     if guid_columns:
         return (
             guid_columns
-            + ["workspace_id", "snapshot_date"]
+            + ["workspace_id"]
         )
 
     raise ValueError(
@@ -87,7 +87,6 @@ def build_schema_from_tables(
     for table_name, df in tables.items():
 
         columns = {
-            "snapshot_date": "STRING",
             "workspace_id": "STRING"            
         }
 
@@ -121,20 +120,13 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Perform a full snapshot sync.
+    Perform a full sync.
     """
 
     validate_configuration(configuration)
 
-    snapshot_date = (
-        datetime.now(timezone.utc)
-        .date()
-        .isoformat()
-    )
-
     log.info(
-        f"Starting Relatics snapshot sync "
-        f"for snapshot_date={snapshot_date}"
+        f"Starting Relatic sync"
     )
 
     try:
@@ -152,10 +144,6 @@ def update(configuration: dict, state: dict):
                 f"with {len(df)} records"
             )
 
-            df = df.copy()
-
-            df["snapshot_date"] = snapshot_date
-
             for record in df.to_dict("records"):
 
                 op.upsert(
@@ -168,12 +156,16 @@ def update(configuration: dict, state: dict):
             log.info(
                 f"Finished table '{table_name}'"
             )
+            
+            sync_timestamp = datetime.now(
+                timezone.utc
+            ).isoformat()
 
-        op.checkpoint(
-            {
-                "last_snapshot_date": snapshot_date
-            }
-        )
+            op.checkpoint(
+                {
+                    "last_sync": sync_timestamp
+                }
+            )
 
         log.info(
             f"Sync complete. "
