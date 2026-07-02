@@ -1,3 +1,6 @@
+import pandas as pd
+from typing import Dict
+
 from src.ingestion.relatics_client import RelaticsClient
 from src.ingestion.xml_parser import parse_xml
 from src.processing.extractor import RelaticsExtractor
@@ -12,35 +15,72 @@ DATA_MODEL_OPERATION = "dip_data_model_2"
 def extract_relatics(
     client_id: str,
     client_secret: str,
-    environment: str
-): 
-    client = RelaticsClient(client_id,client_secret,environment)
-    tables = {}
-    
+    environment: str,
+) -> Dict[str, pd.DataFrame]:
+    """
+    Extract all Relatics data and combine tables from all workspaces.
+
+    If multiple workspaces contain the same table, the rows are appended
+    into a single DataFrame. The workspace_id column preserves the origin
+    of each record.
+
+    Returns:
+        Dict[str, pd.DataFrame]
+    """
+
+    client = RelaticsClient(
+        client_id,
+        client_secret,
+        environment,
+    )
+
+    tables: Dict[str, pd.DataFrame] = {}
+
     for workspace_id in WORKSPACE_IDS:
-        elements_root = client.get_request(workspace_id,ELEMENT_OPERATION)
-        elements_df = parse_xml(elements_root,ELEMENT_REPORT_PART)
-        
-        for idx in elements_df.index:             
-            element = elements_df["Element"][idx]
-            element_id = elements_df["ElementID"][idx]
+
+        elements_root = client.get_request(
+            workspace_id,
+            ELEMENT_OPERATION,
+        )
+
+        elements_df = parse_xml(
+            elements_root,
+            ELEMENT_REPORT_PART,
+        )
+
+        for _, row in elements_df.iterrows():
+
+            element = row["Element"]
+            element_id = row["ElementID"]
+
             parameters = {
-                "ConfigurationOfRef": element_id
+                "ConfigurationOfRef": element_id,
             }
-            
-            print(f"retrieving data for {element}")
-            
+
             element_root = client.get_request(
                 workspace_id,
                 DATA_MODEL_OPERATION,
-                parameters
+                parameters,
             )
-            
+
             extractor = RelaticsExtractor(
                 element_root,
-                workspace_id 
+                workspace_id,
             )
-            
-            tables.update(extractor.create_element_tables())
-            
+
+            extracted_tables = extractor.create_element_tables()
+
+            for table_name, df in extracted_tables.items():
+
+                if table_name in tables:
+
+                    tables[table_name] = pd.concat(
+                        [tables[table_name], df],
+                        ignore_index=True,
+                    )
+
+                else:
+
+                    tables[table_name] = df
+
     return tables
