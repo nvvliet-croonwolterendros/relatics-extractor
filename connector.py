@@ -1,13 +1,6 @@
 """
 Relatics Snapshot Connector
-
-Creates a daily snapshot of Relatics data.
-Each sync performs a full extraction and writes a new snapshot
-identified by snapshot_date.
-
-Primary key strategy:
-- Regular tables: guid + snapshot_date
-- Link tables: all columns + snapshot_date
+...
 """
 
 import json
@@ -19,6 +12,9 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 from src.services.extraction_service import extract_relatics
+
+_tables_cache = None  # NEW: process-level cache
+
 
 def validate_configuration(configuration: dict):
     required_configs = [
@@ -32,6 +28,26 @@ def validate_configuration(configuration: dict):
             raise ValueError(
                 f"Missing required configuration value: {config}"
             )
+
+
+def get_tables(configuration: dict) -> dict[str, pd.DataFrame]:
+    """
+    Extract Relatics data once per process and cache it,
+    so schema() and update() don't both hit the API.
+    """
+    global _tables_cache
+
+    if _tables_cache is None:
+        log.info("Extracting Relatics data (not cached yet)")
+        _tables_cache = extract_relatics(
+            client_id=configuration["client_id"],
+            client_secret=configuration["client_secret"],
+            environment=configuration["environment"],
+        )
+    else:
+        log.info("Using cached Relatics data")
+
+    return _tables_cache
 
 
 def infer_primary_key(df: pd.DataFrame) -> list:
@@ -48,7 +64,7 @@ def infer_primary_key(df: pd.DataFrame) -> list:
     if "guid" in df.columns:
         return ["guid", "workspace_id", "snapshot_date"]
 
-    return list(df.columns) + ["snapshot_date"]
+    return [col for col in df.columns if col != "workspace_id"] + ["workspace_id", "snapshot_date"]
 
 
 def build_schema_from_tables(
@@ -63,7 +79,8 @@ def build_schema_from_tables(
     for table_name, df in tables.items():
 
         columns = {
-            "snapshot_date": "STRING",            
+            "snapshot_date": "STRING",
+            "workspace_id": "STRING"            
         }
 
         for column in df.columns:
@@ -91,11 +108,7 @@ def schema(configuration: dict):
 
     log.info("Loading Relatics metadata for schema generation")
 
-    tables = extract_relatics(
-        client_id=configuration["client_id"],
-        client_secret=configuration["client_secret"],
-        environment=configuration["environment"],
-    )
+    tables = get_tables(configuration)  # CHANGED: was extract_relatics(...)
 
     return build_schema_from_tables(tables)
 
@@ -106,10 +119,6 @@ def update(configuration: dict, state: dict):
     """
 
     validate_configuration(configuration)
-
-    client_id = configuration["client_id"]
-    client_secret = configuration["client_secret"]
-    environment = configuration["environment"]
 
     snapshot_date = (
         datetime.now(timezone.utc)
@@ -124,11 +133,7 @@ def update(configuration: dict, state: dict):
 
     try:
 
-        tables = extract_relatics(
-            client_id=client_id,
-            client_secret=client_secret,
-            environment=environment,
-        )
+        tables = get_tables(configuration)  # CHANGED: was extract_relatics(...)
 
         log.info(f"Found {len(tables)} tables")
         
