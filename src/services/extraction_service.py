@@ -50,7 +50,6 @@ def extract_relatics(
 
         for _, row in elements_df.iterrows():
 
-            element = row["Element"]
             element_id = row["ElementID"]
 
             parameters = {

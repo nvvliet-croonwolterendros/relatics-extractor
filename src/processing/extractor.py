@@ -90,12 +90,14 @@ class RelaticsExtractor:
     
         # merge element df with properties and to one relations
         table_name = f"raw_relatics__{element}"
-        tables[table_name] = (
+        element_table = (
             elem_insts_df
             .merge(prop_insts_df, on=["guid", "naam"], how="left")
             .merge(prop_rel_insts_one_df, on=["guid", "naam"], how="left")
             .merge(rel_insts_one_df, on=["guid", "naam"], how="left")
         )
+        element_table["workspace_id"] = self.workspace_id
+        tables[table_name] = element_table
 
         # get link tables
         for r2_element in rels_many:
