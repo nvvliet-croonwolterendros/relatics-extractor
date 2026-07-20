@@ -17,6 +17,8 @@ class RelaticsExtractor:
         self.r1_element_col = "R1Element"
         self.r1_element_id_col = "R1ElementID"
         self.r1_instance_col = "R1Instance"
+        self.r1_instance_description_col = "R1InstanceDescription"
+        self.r1_instance_richtext_col = "R1InstanceRichtext"
         self.r1_instance_id_col = "R1InstanceID"
         self.r2_element_col = "R2Element"
         self.r2_element_id_col = "R2ElementID"
@@ -30,8 +32,10 @@ class RelaticsExtractor:
         self.base_col_map = {
             self.r1_instance_id_col: "guid",
             self.r1_instance_col: "naam",
+            self.r1_instance_description_col: "omschrijving",
+            self.r1_instance_richtext_col: "richtext",
         }
-        self.base_cols = ["guid", "naam"]
+        self.base_cols = ["guid", "naam", "omschrijving", "richtext"]
         
         self.workspace_id = workspace_id
         self.elem_df = parse_xml(root,self.elem_report_part)
@@ -92,10 +96,11 @@ class RelaticsExtractor:
         table_name = f"raw_relatics__{element}"
         element_table = (
             elem_insts_df
-            .merge(prop_insts_df, on=["guid", "naam"], how="left")
-            .merge(prop_rel_insts_one_df, on=["guid", "naam"], how="left")
-            .merge(rel_insts_one_df, on=["guid", "naam"], how="left")
+            .merge(prop_insts_df, on=["guid", "naam"], how="left", suffixes=("", "_DROP"))
+            .merge(prop_rel_insts_one_df, on=["guid", "naam"], how="left", suffixes=("", "_DROP"))
+            .merge(rel_insts_one_df, on=["guid", "naam"], how="left", suffixes=("", "_DROP"))
         )
+        element_table = element_table.loc[:, ~element_table.columns.str.endswith("_DROP")]
         element_table["workspace_id"] = self.workspace_id
         tables[table_name] = element_table
 
