@@ -2,8 +2,9 @@ import pandas as pd
 from typing import Dict
 
 from src.ingestion.relatics_client import RelaticsClient
-from src.ingestion.xml_parser import parse_xml
+from src.ingestion.xml_parser import parse_xml, parse_icon_xml
 from src.processing.extractor import RelaticsExtractor
+from src.processing.base64processor import add_file_metadata_from_base64_zip
 
 WORKSPACE_IDS = [
     "210b2918-b359-4892-a23b-bf96ad23d82f"
@@ -13,6 +14,20 @@ ELEMENT_REPORT_PART = "Elements"
 DATA_MODEL_OPERATION = "dip_data_model_2"
 ICON_OPERATION = "icons"
 
+def add_to_tables(extracted_tables:Dict[str, pd.DataFrame], tables:Dict[str, pd.DataFrame]):
+    for table_name, df in extracted_tables.items():
+
+        if table_name in tables:
+
+            tables[table_name] = pd.concat(
+                [tables[table_name], df],
+                ignore_index=True,
+            )
+            return tables
+        else:
+            tables[table_name] = df
+            return tables
+        
 def extract_relatics(
     client_id: str,
     client_secret: str,
@@ -38,23 +53,29 @@ def extract_relatics(
     tables: Dict[str, pd.DataFrame] = {}
 
     for workspace_id in WORKSPACE_IDS:
-        # Added at the top for testing reasons, can be moved if needed
-
+        # retrieva ll icons from relatics
         icon_root = client.get_request(
             workspace_id=workspace_id,
             operation=ICON_OPERATION
         )
 
+        icon_df, icon_zip = parse_icon_xml(
+            root=icon_root,
+        )
+
+        icon_df_merged = add_file_metadata_from_base64_zip(icon_df, icon_zip)
+
         elements_root = client.get_request(
             workspace_id,
             ELEMENT_OPERATION,
         )
-
+        # Retrieve all elements to be extracted
         elements_df = parse_xml(
             elements_root,
             ELEMENT_REPORT_PART,
         )
-
+        
+        # Iterate over all these elements to be extracted and build the actual tables.
         for _, row in elements_df.iterrows():
 
             element_id = row["ElementID"]
