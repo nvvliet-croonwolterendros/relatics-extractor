@@ -255,6 +255,7 @@ class RelaticsExtractor:
 
     @staticmethod
     def _normalize_value(val: str, max_length: int = 63) -> str:
+        val = val.replace("&", "_en_").replace("€", "_euro_").replace("+", "_plus_")
         # Normalize Unicode → ASCII (e.g. é → e)
         val = unicodedata.normalize("NFKD", val)
         val = val.encode("ascii", "ignore").decode("ascii")
