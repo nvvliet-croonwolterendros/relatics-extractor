@@ -7,7 +7,7 @@ from src.ingestion.xml_parser import parse_xml
 
 class RelaticsExtractor:
     
-    def __init__(self, root: ET.Element, workspace_id: str) -> None:
+    def __init__(self, root: ET.Element, workspace_id: str, icon_root: ET.Element) -> None:
         self.elem_report_part = "Element"
         self.elem_insts_report_part = "ElementInstances"
         self.props_report_part = "Properties"
@@ -44,6 +44,7 @@ class RelaticsExtractor:
         self.prop_insts_df = parse_xml(root,self.prop_insts_report_part)
         self.rels_df = parse_xml(root,self.rels_report_part)
         self.rel_insts_df = parse_xml(root,self.rel_insts_report_part)
+        
 
     def create_element_tables(self) -> Dict[str,pd.DataFrame]:
         # create table dict

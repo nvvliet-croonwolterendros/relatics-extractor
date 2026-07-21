@@ -26,7 +26,7 @@ for i in range(len(response["Data"]["Element"])):
         os.rename("extracted_files/" + response["Data"]["Element"][i]["@RelaticsIconFilename"], "extracted_files/" + response["Data"]["Element"][i]["@Element"].replace(" ", "_") + "." + response["Data"]["Element"][i]["@RelaticsIconFilename"].split(".")[-1])
     except Exception as e:
         print(f"error processing: {e}")
-        count += 1
+        # count += 1
 for i in os.listdir("extracted_files"):
     with open("extracted_files/" + i, "rb") as f:
         data = f.read()

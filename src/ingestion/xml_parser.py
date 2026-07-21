@@ -1,8 +1,9 @@
 from collections import defaultdict
 import pandas as pd
 import itertools
+import xml.etree.ElementTree as ET
 
-def parse_xml(root, report_part):
+def parse_xml(root:ET.Element, report_part:str) -> pd.DataFrame:
     start_element = root.find(report_part)
     
     nested_rows = []
@@ -21,6 +22,16 @@ def parse_xml(root, report_part):
 
     return df
 
+def parse_icon_xml(root:ET.Element) -> str | None:
+    documents = root.find("Documents")
+    if documents is not None and documents.text:
+        zipbase64 = documents.text
+        del documents # manually deallocate memory as the file can be large i dont want to wait for the GC.
+
+    # Get the table for the icons as well as it will be needed for renaming
+    df = parse_xml(root=root, report_part="Data")
+    print(df)
+    
 def _parse_xml_to_dict(start_element):
     dictionary = defaultdict(list)
 

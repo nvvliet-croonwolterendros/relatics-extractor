@@ -11,6 +11,7 @@ WORKSPACE_IDS = [
 ELEMENT_OPERATION = "dip_elements"
 ELEMENT_REPORT_PART = "Elements"
 DATA_MODEL_OPERATION = "dip_data_model_2"
+ICON_OPERATION = "icons"
 
 def extract_relatics(
     client_id: str,
@@ -37,6 +38,12 @@ def extract_relatics(
     tables: Dict[str, pd.DataFrame] = {}
 
     for workspace_id in WORKSPACE_IDS:
+        # Added at the top for testing reasons, can be moved if needed
+
+        icon_root = client.get_request(
+            workspace_id=workspace_id,
+            operation=ICON_OPERATION
+        )
 
         elements_root = client.get_request(
             workspace_id,
@@ -65,6 +72,7 @@ def extract_relatics(
             extractor = RelaticsExtractor(
                 element_root,
                 workspace_id,
+                icon_root,
             )
 
             extracted_tables = extractor.create_element_tables()
