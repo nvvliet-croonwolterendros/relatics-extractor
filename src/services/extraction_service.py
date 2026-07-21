@@ -14,7 +14,10 @@ ELEMENT_REPORT_PART = "Elements"
 DATA_MODEL_OPERATION = "dip_data_model_2"
 ICON_OPERATION = "icons"
 
-def add_to_tables(extracted_tables:Dict[str, pd.DataFrame], tables:Dict[str, pd.DataFrame]):
+def add_to_tables(extracted_tables: Dict[str, pd.DataFrame], tables: Dict[str, pd.DataFrame]) -> None:
+    """
+    This function helps to update the tables dict in the extract_relatics function. Function mainly added to follow DRY.
+    """
     for table_name, df in extracted_tables.items():
 
         if table_name in tables:
@@ -23,11 +26,9 @@ def add_to_tables(extracted_tables:Dict[str, pd.DataFrame], tables:Dict[str, pd.
                 [tables[table_name], df],
                 ignore_index=True,
             )
-            return tables
         else:
             tables[table_name] = df
-            return tables
-        
+
 def extract_relatics(
     client_id: str,
     client_secret: str,
@@ -64,6 +65,7 @@ def extract_relatics(
         )
 
         icon_df_merged = add_file_metadata_from_base64_zip(icon_df, icon_zip)
+        add_to_tables({"icons": icon_df_merged}, tables)
 
         elements_root = client.get_request(
             workspace_id,
@@ -98,17 +100,6 @@ def extract_relatics(
 
             extracted_tables = extractor.create_element_tables()
 
-            for table_name, df in extracted_tables.items():
-
-                if table_name in tables:
-
-                    tables[table_name] = pd.concat(
-                        [tables[table_name], df],
-                        ignore_index=True,
-                    )
-
-                else:
-
-                    tables[table_name] = df
+            add_to_tables(extracted_tables, tables)
 
     return tables

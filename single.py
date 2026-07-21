@@ -8,6 +8,7 @@ import os
 import json
 import pandas as pd
 from datetime import datetime
+from time import time
 
 # Add the src directory to Python path so we can import modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -22,7 +23,7 @@ def main():
     client_id = input("Enter your Client ID: ").strip()
     client_secret = input("Enter your Client Secret: ").strip() 
     environment = input("Enter your Environment (e.g., 'prod', 'test'): ").strip()
-    
+    start = time()
     if not all([client_id, client_secret, environment]):
         print("Error: All credentials must be provided.")
         return
@@ -73,6 +74,7 @@ def main():
         # Show a preview of the data (first 5 rows)
         print("\nPreview of data:")
         print(selected_table.head())
+        print(f"runtime: {time()-start}")
         
     except Exception as e:
         print(f"Error during extraction: {e}")

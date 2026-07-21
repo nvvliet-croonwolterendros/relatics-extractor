@@ -22,15 +22,17 @@ def parse_xml(root:ET.Element, report_part:str) -> pd.DataFrame:
 
     return df
 
-def parse_icon_xml(root:ET.Element) -> str | None:
+def parse_icon_xml(root:ET.Element) -> tuple[pd.DataFrame, str]:
     documents = root.find("Documents")
+    zipbase64 = None
     if documents is not None and documents.text:
         zipbase64 = documents.text
         del documents # manually deallocate memory as the file can be large i dont want to wait for the GC.
-
+    elif zipbase64 is None:
+        raise ValueError("No Document tag found or tag is empty")
     # Get the table for the icons as well as it will be needed for renaming
     df = parse_xml(root=root, report_part="Data")
-    print(df)
+    return df, zipbase64
     
 def _parse_xml_to_dict(start_element):
     dictionary = defaultdict(list)

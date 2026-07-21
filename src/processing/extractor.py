@@ -116,16 +116,6 @@ class RelaticsExtractor:
             )
         
         return tables
-    
-    def create_icon_table(self) -> pd.DataFrame:
-        # TODO implement in reverse order the entire extraction so:
-        # TODO in this file you make the table in this function + parse xml using xml_parser.parse_xml(res, "Data")
-        # TODO in order to obtain the xml you need to do a request using client.get_request(workspace_id="210b2918-b359-4892-a23b-bf96ad23d82f", operation="icons")
-        # TODO do a request for the icons which contain 'document' tag which is the base64 of a zip, then extract this zip in a temporary folder. persumably you can get the base64 with xml_parser.parse_xml(res, "documents")
-        # TODO you now should have the table with at least element name, and filename. encode the filename to a base64 and add to the table.
-        # TODO calculate sha256 checksum from the base64 and add it to the table
-        # TODO return table for upload
-        pass
 
     def _get_link_table(self, df: pd.DataFrame, element:str, r2_element: str):
         if self.r2_element_col in df.columns and r2_element in df[self.r2_element_col].unique():     
