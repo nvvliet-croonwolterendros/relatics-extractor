@@ -7,7 +7,7 @@ from src.ingestion.xml_parser import parse_xml
 
 class RelaticsExtractor:
     
-    def __init__(self, root: ET.Element, workspace_id: str, icon_root: ET.Element) -> None:
+    def __init__(self, root: ET.Element, workspace_id: str) -> None:
         self.elem_report_part = "Element"
         self.elem_insts_report_part = "ElementInstances"
         self.props_report_part = "Properties"
