@@ -1,8 +1,9 @@
 from collections import defaultdict
 import pandas as pd
 import itertools
+import xml.etree.ElementTree as ET
 
-def parse_xml(root, report_part):
+def parse_xml(root:ET.Element, report_part:str) -> pd.DataFrame:
     start_element = root.find(report_part)
     
     nested_rows = []

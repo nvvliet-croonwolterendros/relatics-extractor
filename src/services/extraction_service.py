@@ -1,5 +1,6 @@
 import pandas as pd
 from typing import Dict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.ingestion.relatics_client import RelaticsClient
 from src.ingestion.xml_parser import parse_xml
@@ -11,6 +12,22 @@ WORKSPACE_IDS = [
 ELEMENT_OPERATION = "dip_elements"
 ELEMENT_REPORT_PART = "Elements"
 DATA_MODEL_OPERATION = "dip_data_model_2"
+MAX_WORKERS = None #none means corecount + 5 (default value of concurrent futures)
+
+def add_to_tables(extracted_tables: Dict[str, pd.DataFrame], tables: Dict[str, pd.DataFrame]) -> None:
+    """
+    This function helps to update the tables dict in the extract_relatics function. Function mainly added to follow DRY.
+    """
+    for table_name, df in extracted_tables.items():
+
+        if table_name in tables:
+
+            tables[table_name] = pd.concat(
+                [tables[table_name], df],
+                ignore_index=True,
+            )
+        else:
+            tables[table_name] = df
 
 def extract_relatics(
     client_id: str,
@@ -37,21 +54,17 @@ def extract_relatics(
     tables: Dict[str, pd.DataFrame] = {}
 
     for workspace_id in WORKSPACE_IDS:
-
         elements_root = client.get_request(
             workspace_id,
             ELEMENT_OPERATION,
         )
-
+        # Retrieve all elements to be extracted
         elements_df = parse_xml(
             elements_root,
             ELEMENT_REPORT_PART,
         )
 
-        for _, row in elements_df.iterrows():
-
-            element_id = row["ElementID"]
-
+        def process_element(element_id):
             parameters = {
                 "ConfigurationOfRef": element_id,
             }
@@ -67,19 +80,17 @@ def extract_relatics(
                 workspace_id,
             )
 
-            extracted_tables = extractor.create_element_tables()
+            return extractor.create_element_tables()
 
-            for table_name, df in extracted_tables.items():
+        # Iterate over all these elements to be extracted and build the actual tables (in parallel).
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = [
+                executor.submit(process_element, row["ElementID"])
+                for _, row in elements_df.iterrows()
+            ]
 
-                if table_name in tables:
-
-                    tables[table_name] = pd.concat(
-                        [tables[table_name], df],
-                        ignore_index=True,
-                    )
-
-                else:
-
-                    tables[table_name] = df
+            for future in as_completed(futures):
+                extracted_tables = future.result()
+                add_to_tables(extracted_tables, tables)
 
     return tables
