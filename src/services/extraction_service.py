@@ -3,9 +3,8 @@ from typing import Dict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.ingestion.relatics_client import RelaticsClient
-from src.ingestion.xml_parser import parse_xml, parse_icon_xml
+from src.ingestion.xml_parser import parse_xml
 from src.processing.extractor import RelaticsExtractor
-from src.processing.base64processor import add_file_metadata_from_base64_zip
 
 WORKSPACE_IDS = [
     "210b2918-b359-4892-a23b-bf96ad23d82f"
@@ -13,7 +12,6 @@ WORKSPACE_IDS = [
 ELEMENT_OPERATION = "dip_elements"
 ELEMENT_REPORT_PART = "Elements"
 DATA_MODEL_OPERATION = "dip_data_model_2"
-ICON_OPERATION = "icons"
 MAX_WORKERS = None #none means corecount + 5 (default value of concurrent futures)
 
 def add_to_tables(extracted_tables: Dict[str, pd.DataFrame], tables: Dict[str, pd.DataFrame]) -> None:
@@ -56,19 +54,6 @@ def extract_relatics(
     tables: Dict[str, pd.DataFrame] = {}
 
     for workspace_id in WORKSPACE_IDS:
-        # retrieva ll icons from relatics
-        icon_root = client.get_request(
-            workspace_id=workspace_id,
-            operation=ICON_OPERATION
-        )
-
-        icon_df, icon_zip = parse_icon_xml(
-            root=icon_root,
-        )
-
-        icon_df_merged = add_file_metadata_from_base64_zip(icon_df, icon_zip)
-        add_to_tables({"icons": icon_df_merged}, tables)
-
         elements_root = client.get_request(
             workspace_id,
             ELEMENT_OPERATION,
@@ -93,7 +78,6 @@ def extract_relatics(
             extractor = RelaticsExtractor(
                 element_root,
                 workspace_id,
-                icon_root,
             )
 
             return extractor.create_element_tables()
