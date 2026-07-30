@@ -353,17 +353,17 @@ class RelaticsExtractor:
     
     def _transform_df(self, df: pd.DataFrame, values: str, columns: str, col_list: list) -> pd.DataFrame:
         required_columns = {values,columns}
-        required_columns.update(self.base_cols)
+        required_columns.update(["guid","naam"])
+        
+        df = df.rename(columns=self.base_col_map)
         
         if required_columns.issubset(df.columns):
-            
-            df.rename(columns=self.base_col_map)
             
             df = (
                 df.pivot(
                     values=values,
                     columns=columns,
-                    index=self.base_cols
+                    index=["guid","naam"]
                 )
                 .rename_axis(columns=None)
                 .reset_index()
