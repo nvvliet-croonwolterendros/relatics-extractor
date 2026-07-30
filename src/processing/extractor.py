@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import unicodedata
 import re
 import xml.etree.ElementTree as ET
@@ -22,6 +23,8 @@ class RelaticsExtractor:
         self.r1_instance_id_col = "R1InstanceID"
         self.r2_element_col = "R2Element"
         self.r2_element_id_col = "R2ElementID"
+        self.child_r2_element_col = "ChildR2Element"
+        self.child_r2_element_id_col = "ChildR2ElementID"
         self.r2_instance_col = "R2Instance"
         self.r2_instance_id_col = "R2InstanceID"
         self.property_col = "Property"
@@ -62,11 +65,14 @@ class RelaticsExtractor:
         # get property instances
         prop_insts_df = self._get_prop_instances(self.prop_insts_df, properties) 
         
+        # coalese inherted relations
+        rels_df = self._coalese_r2_children(self.rels_df)
+        
         # create rename map
-        rename_map = self._create_rename_map(self.rels_df)
+        rename_map = self._create_rename_map(rels_df)
         
         # get relations
-        rels_one, rels_many, prop_rels_one = self._get_relations(self.rels_df, rename_map)
+        rels_one, rels_many, prop_rels_one = self._get_relations(rels_df, rename_map)
         
         # get relation instances
         rel_insts_one_df, rel_insts_many_df, prop_rel_insts_one_df = self._get_relation_instances(self.rel_insts_df, rename_map)    
@@ -117,6 +123,31 @@ class RelaticsExtractor:
         
         return tables
 
+    def _coalese_r2_children(self, df: pd.DataFrame) -> pd.DataFrame:
+        required_cols = [
+            self.r2_element_id_col,
+            self.r2_element_col,
+            self.child_r2_element_id_col,
+            self.child_r2_element_col
+        ]
+        
+        if all(col in df.columns for col in required_cols):
+            # coalese r2 element id
+            df[self.r2_element_id_col] = np.where(
+                df[self.child_r2_element_id_col].notna(),
+                df[self.child_r2_element_id_col],
+                df[self.r2_element_id_col]
+            )
+            
+            # coalese r2 element
+            df[self.r2_element_col] = np.where(
+                df[self.child_r2_element_id_col].notna(),
+                df[self.child_r2_element_col],
+                df[self.r2_element_col]
+            )
+        
+        return df
+    
     def _get_link_table(self, df: pd.DataFrame, element:str, r2_element: str):
         if self.r2_element_col in df.columns and r2_element in df[self.r2_element_col].unique():     
             filtered = df[df[self.r2_element_col] == r2_element]

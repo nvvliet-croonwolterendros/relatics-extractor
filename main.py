@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Dict
+import os
 import sqlite3
 import json
 import pandas as pd
@@ -8,10 +9,16 @@ from src.services.extraction_service import extract_relatics
 
 def _write_to_sqlite(
     tables: Dict[str, pd.DataFrame],
+    db_dir: str | Path,
     db_path: str | Path,
 ) -> None:
+    db_dir = Path(db_dir)
     db_path = Path(db_path)
 
+    # create directory
+    if not os.path.exists(db_dir):
+        os.makedirs(db_dir)
+    
     # Remove existing database
     if db_path.exists():
         db_path.unlink()
@@ -48,5 +55,6 @@ if __name__ == "__main__":
     # write to sqlite
     _write_to_sqlite(
         tables=tables,
-        db_path="relatics.sqlite",
+        db_dir="data",
+        db_path="data/relatics.sqlite",
     )
