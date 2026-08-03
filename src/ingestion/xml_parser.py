@@ -8,7 +8,7 @@ def parse_xml(root:ET.Element, report_part:str) -> pd.DataFrame:
     
     nested_rows = []
     
-    if start_element:
+    if start_element is not None:
         nested_rows.append(_parse_xml_to_dict(start_element=start_element))
         
     unpacked_rows = []
