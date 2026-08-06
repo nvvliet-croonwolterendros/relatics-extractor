@@ -5,7 +5,7 @@ import sqlite3
 import json
 import pandas as pd
 
-from src.services.extraction_service import extract_relatics
+from extraction_service import extract_relatics
 
 def _write_to_sqlite(
     tables: Dict[str, pd.DataFrame],
