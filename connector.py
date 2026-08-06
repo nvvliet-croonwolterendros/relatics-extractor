@@ -10,7 +10,7 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
-from src.services.extraction_service import extract_relatics
+from extraction_service import extract_relatics
 
 _tables_cache = None
 
