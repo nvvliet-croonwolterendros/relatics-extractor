@@ -109,7 +109,7 @@ def test_normalize_tables_never_add_required_column(tables_fixture):
     """
     If a column doesn't exist but is required, the function should never add it.
     """
-        test_schema = {
+    test_schema = {
         "users": {
             "name": {"required": True},
             "age": {"required": False, "default": None},
@@ -149,7 +149,7 @@ def test_is_valid_schema_input_valid(tables_fixture):
     
     assert report == None
 
-def test_is_valid_schema_input_missing_columns():
+def test_is_valid_schema_input_missing_columns(tables_fixture):
     """
     Als column mist bij tenminste een van de tabelen raise error.
     Genereer rapport (dict) met tabel naam als key en lijst missend kolommen als waarde
