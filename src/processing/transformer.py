@@ -6,7 +6,8 @@ COLUMN_MAP = {
 }
 
 def create_element_tables(
-    tables: Dict[str, pd.DataFrame]
+    tables: Dict[str, pd.DataFrame],
+    column_map: Dict[str,str] = COLUMN_MAP 
 ) -> Dict[str, pd.DataFrame]:
     """
     Takes the 6 input tables for a given element.
@@ -15,16 +16,13 @@ def create_element_tables(
     Using the Relations table create a rename-map duplicate R2Elements by adding the (SQL safe) Relation name as a prefix.
     In the RelationInstances table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
     
+    Merge property_table, property_elements_table and to_one_relations_table on relation_instances_df
+    
+    rename columns or the element table using the COLUMN_MAP
+    
     Returns the element table and required link tables for the element.
     """
     pass
-
-def _create_base_element_table(
-    element_instance_df: pd.DataFrame
-) -> pd.DataFrame:
-    """
-    takes the element instance df and renames the columns according to the COLUMN_MAP
-    """
     
 def _create_property_table(
     properties_df: pd.DataFrame,
@@ -34,7 +32,6 @@ def _create_property_table(
     Renames the property names so they are SQL safe.
     Pivots the property instances table so the properties are on the column axis.
     Ensures a column exists for every property of the element.
-    Renames the R1InstanceID column according to the rename map.
     """
     
 def _create_property_elements_table(
@@ -45,7 +42,6 @@ def _create_property_elements_table(
     Filters on cardinality :1 and relation name 'Heeft property'
     Pivots the relation_instances_df so the R2Element names are on the column axis.
     Ensures a column exists for each R2Element.
-    Renames the R1InstanceID column according to the rename map.
     """
     
 def _create_to_one_relations_table(
@@ -57,7 +53,6 @@ def _create_to_one_relations_table(
     Pivots the relation_instances_df so the R2Element names are on the column axis.
     Ensures a column exists for each R2Element.
     Add the suffix '_guid' to each column except R1InstanceID.
-    Renames the R1InstanceID column according to the rename map.
     """
     
 def _create_link_tables(
