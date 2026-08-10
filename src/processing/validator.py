@@ -29,11 +29,13 @@ def normalize_tables(
         all_cols = set(table_schema.keys())
         if all_cols.issubset(set(df.columns)):
             parsed_tables[tablename] = df
+            logger.debug(f"{tablename} has all columns, moving to the next.")
             continue
 
         optional_cols = {column:columnrestrictions['default'] for column, columnrestrictions in table_schema.items() if columnrestrictions['required'] == False}
         for columnname, defaultvalue in optional_cols.items():
             if columnname not in df.columns:
+                logger.debug(f"Add missing column: {columnname} in table: {tablename}")
                 df[columnname] = defaultvalue
         parsed_tables[tablename] = df
     return parsed_tables
