@@ -1,15 +1,32 @@
 import pytest
-    
+import pandas as pd
+
+@pytest.fixture
+def PropertyInstances():
+    return pd.read_parquet('fixtures/test_transformer/PropertyInstances.parquet')
+
+@pytest.fixture
+def Properties():
+    return pd.read_parquet('fixtures/test_transformer/Properties.parquet')
+
 def test_create_property_table_complete_properties():
     """
     Test whether a df with all a column for each property is returned
     in the case all properties exist in the Property column of the input df.
+    Also test if eacg R1InstanceID only appears once.
     """
     
 def test_create_property_table_incomplete_properties():
     """
     Test whether a df with all a column for each property is returned
     in the case not all properties exist in the Property column of the input df.
+    Also test if eacg R1InstanceID only appears once.
+    """
+
+def test_create_property_table_no_properties():
+    """
+    Test whether the input dataframe is empty or contains no properties.
+    Should give an info logging and return an empty df.
     """
     
 def test_create_property_elements_table_complete_properties():

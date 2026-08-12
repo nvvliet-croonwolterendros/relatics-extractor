@@ -1,9 +1,22 @@
 import pandas as pd
 from typing import Dict
+import unicodedata
+import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 COLUMN_MAP = {
     
 }
+
+R1INSTANCE_COL = "R1Instance"
+R1INSTANCEID_COL = "R1InstanceID"
+
+PROPERTY_COL = "Property"
+PROPERTYINSTANCE_COL = "PropertyInstance"
+
+BASE_COLS = ["guid", "naam", "omschrijving", "richtext"]
 
 def create_element_tables(
     tables: Dict[str, pd.DataFrame],
@@ -33,6 +46,22 @@ def _create_property_table(
     Pivots the property instances table so the properties are on the column axis.
     Ensures a column exists for every property of the element.
     """
+    # Get all unique properties, throw warning if it is empty
+    unique_properties = properties_df.rename(columns=_normalize_value)
+    unique_properties_list = unique_properties[PROPERTY_COL].dropna().unique().tolist()
+    if len(unique_properties_list) == 0:
+        logging.warning("No properties found in properties report part.")
+
+    try:
+        pivot_property_instances_df = property_instances_df.pivot(index=[R1INSTANCEID_COL, R1INSTANCE_COL], columns=PROPERTY_COL, values=PROPERTYINSTANCE_COL)
+    except ValueError:
+        logging.exception("Failed to pivot table, likely due to duplicates")
+        raise
+
+    renamed_property_instances_df = pivot_property_instances_df.rename(columns=_normalize_value)
+    # Colmap moet nog gedaan worden volgens mij mist hier ook de R1ElementGuid enzo die wel bij de v2 report aanwezig is.
+    reindexed_property_instances_df = renamed_property_instances_df.reindex(BASE_COLS + unique_properties_list, fill_value='')
+    return reindexed_property_instances_df
     
 def _create_property_elements_table(
     relations_df: pd.DataFrame,
@@ -67,3 +96,32 @@ def _create_link_tables(
     The table name should be equal to {R1Element}_{R2Element}
     Ensures a link table exists for each R2Element.
     """
+
+def _normalize_value(val: str, max_length: int = 63) -> str:
+    """
+    Function that takes an input string and normalizes the data so it can safely be used in downstream applications.
+    Returns: Sanatized string without any special characters.
+    """
+    val = val.replace("&", "_en_").replace("€", "_euro_").replace("+", "_plus_")
+    # Normalize Unicode → ASCII (e.g. é → e)
+    val = unicodedata.normalize("NFKD", val)
+    val = val.encode("ascii", "ignore").decode("ascii")
+
+    # Lowercase
+    val = val.lower()
+
+    # Replace invalid characters with underscore
+    val = re.sub(r"[^a-z0-9_]", "_", val)
+
+    # Collapse multiple underscores
+    val = re.sub(r"_+", "_", val)
+
+    # Strip leading/trailing underscores
+    val = val.strip("_")
+
+    # Ensure it doesn't start with a digit
+    if not val or val[0].isdigit():
+        val = f"no_num_{val}"
+
+    # Trim to max length (Postgres default = 63)
+    return val[:max_length]
