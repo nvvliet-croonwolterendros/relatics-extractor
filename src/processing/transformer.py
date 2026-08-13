@@ -47,21 +47,24 @@ def _create_property_table(
     Pivots the property instances table so the properties are on the column axis.
     Ensures a column exists for every property of the element.
     """
+    property_instances_df = property_instances_df.copy()
     # Get all unique properties, throw warning if it is empty
-    # unique_properties = properties_df.rename(columns=_normalize_value)
-    unique_properties_list = properties_df[PROPERTY_COL].apply(_normalize_value).dropna().unique().tolist()
+    unique_properties_list = properties_df[PROPERTY_COL].apply(_normalize_value).unique().tolist()
     if len(unique_properties_list) == 0:
-        logging.warning("No properties found in properties report part.")
+        logger.warning("No properties found in properties report part.")
+    if property_instances_df.shape[0] == 0:
+        logger.warning("No property instanes found in property instances report part.")
 
     # normalize 
     property_instances_df[PROPERTY_COL] = property_instances_df[PROPERTY_COL].apply(_normalize_value) 
     try:
-        pivot_property_instances_df = property_instances_df.pivot(index=R1INSTANCEID_COL, columns=PROPERTY_COL, values=PROPERTYINSTANCE_COL).rename_axis(columns=None).reset_index()
+        pivot_property_instances_df = property_instances_df.pivot(index=R1INSTANCEID_COL, columns=PROPERTY_COL, values=PROPERTYINSTANCE_COL).rename_axis(columns=None)
     except ValueError:
         logging.exception("Failed to pivot table, likely due to duplicates property names.")
         raise
-    reindexed_property_instances_df = pivot_property_instances_df.reindex(columns=[R1INSTANCEID_COL] + unique_properties_list, fill_value='')
-    return reindexed_property_instances_df
+
+    return pivot_property_instances_df.reindex(columns=unique_properties_list, fill_value='')
+    
     
 def _create_property_elements_table(
     relations_df: pd.DataFrame,
