@@ -1,4 +1,5 @@
 import pytest
+import logging
 import pandas as pd
 from src.processing import transformer
 
@@ -23,14 +24,13 @@ def test_create_property_table_complete_properties():
     df_property = pd.DataFrame(data_property)
 
     all_properties = df_property["Property"].apply(transformer._normalize_value).dropna().unique().tolist()
-    all_properties.append("R1InstanceID")
     transformed_table = transformer._create_property_table(properties_df=df_property, property_instances_df=df_property_instance)
 
     assert set(transformed_table.columns) == set(all_properties)
     assert len(transformed_table.columns.tolist()) == len(all_properties) # Order is irrelevant so a == operator will yield unwanted result. The set + len will ensure the list is the same
-    assert 'R1InstanceID' in transformed_table.columns.tolist()
-    assert transformed_table['R1InstanceID'].unique().shape[0] == transformed_table['R1InstanceID'].shape[0]
-
+    assert 'R1InstanceID' not in transformed_table.columns.tolist()
+    assert transformed_table.index.unique().shape[0] == transformed_table.index.shape[0]
+    assert transformed_table.index.name == "R1InstanceID"
     
 def test_create_property_table_incomplete_properties(properties, property_instances):
     """
@@ -39,25 +39,85 @@ def test_create_property_table_incomplete_properties(properties, property_instan
     Also test if each R1InstanceID only appears once.
     """
     all_properties = properties["Property"].apply(transformer._normalize_value).dropna().unique().tolist()
-    all_properties.append("R1InstanceID")
     transformed_table = transformer._create_property_table(properties_df=properties, property_instances_df=property_instances)
 
     assert set(transformed_table.columns) == set(all_properties)
     assert len(transformed_table.columns.tolist()) == len(all_properties) # Order is irrelevant so a == operator will yield unwanted result. The set + len will ensure the list is the same
-    assert 'R1InstanceID' in transformed_table.columns.tolist()
-    assert transformed_table['R1InstanceID'].unique().shape[0] == transformed_table['R1InstanceID'].shape[0]
+    assert 'R1InstanceID' not in transformed_table.columns.tolist()
+    assert transformed_table.index.unique().shape[0] == transformed_table.index.shape[0]
+    assert transformed_table.index.name == "R1InstanceID"
 
-def test_create_property_table_no_properties():
+def test_create_property_table_no_properties(caplog):
     """
     Test whether the input dataframe is empty or contains no properties.
     Should give an info logging and return an empty df.
     """
+    empty_properties = pd.DataFrame({'Property': {}, 'PropertyID': {}})
+    empty_propertyelements = pd.DataFrame({'R1Instance': {}, 'R1InstanceID': {}, 'Property': {}, 'PropertyInstance': {}})
+
+    transformed_table = transformer._create_property_table(properties_df=empty_properties, property_instances_df=empty_propertyelements)
+
+    assert transformed_table.index.shape[0] == 0
+    assert transformed_table.index.name == 'R1InstanceID'
+    assert "No properties found in properties report part." in caplog.text
+    assert "No property instanes found in property instances report part." in caplog.text
+
+def test_create_property_table_no_propertyinstances(caplog):
+    """
+    Test whether the input dataframe is empty or contains no property instances while th eproperty dataframe is not empty.
+    Should give an info logging and return an empty df.
+    """
+    empty_properties = pd.DataFrame({'Property': ["ID"], 'PropertyID': ["123-456"]})
+    empty_propertyelements = pd.DataFrame({'R1Instance': {}, 'R1InstanceID': {}, 'Property': {}, 'PropertyInstance': {}})
+
+    transformed_table = transformer._create_property_table(properties_df=empty_properties, property_instances_df=empty_propertyelements)
+
+    assert transformed_table.index.shape[0] == 0
+    assert transformed_table.index.name == 'R1InstanceID'
+    assert set(transformed_table.columns.tolist()) == set(['id'])
+    assert "No property instanes found in property instances report part." in caplog.text
+
+def test_create_property_table_pivot_fails(caplog):
+    """
+    Test wether an exception is thrown and logging happens in case a diplicate R1InstanceID is present
+    """
+    properties = pd.DataFrame({'Property': ["ID"], 'PropertyID': ["123-456"]})
+    propertyelements = pd.DataFrame({'R1Instance': ["Actie1", "Actie2"], 'R1InstanceID': ["1", "1"], 'Property': ["ID", "ID"], 'PropertyInstance': ["ID1", "ID2"]})
+
+    with pytest.raises(ValueError):
+        transformer._create_property_table(properties_df=properties, property_instances_df=propertyelements)
+    assert "Failed to pivot table, likely due to duplicates property names." in caplog.text
+
+def test_create_property_table_drops_undeclared_properties():
+    properties = pd.DataFrame({'Property': ["ID"], 'PropertyID': ["1"]})
+    property_instances = pd.DataFrame({
+        'R1Instance': ["A", "A"],
+        'R1InstanceID': ["x", "x"],
+        'Property': ["ID", "Undeclared"],
+        'PropertyInstance': ["V1", "V2"],
+    })
+    result = transformer._create_property_table(properties_df=properties, property_instances_df=property_instances)
+    assert 'undeclared' not in result.columns.tolist()
+    assert set(result.columns.tolist()) == {"id"}
+ 
+def test_create_property_table_does_not_mutate_input():
+    properties = pd.DataFrame({'Property': ["ID"], 'PropertyID': ["1"]})
+    property_instances = pd.DataFrame({
+        'R1Instance': ["A"],
+        'R1InstanceID': ["x"],
+        'Property': ["ID"],
+        'PropertyInstance': ["V1"],
+    })
+    original_property_values = property_instances['Property'].copy()
+    transformer._create_property_table(properties_df=properties, property_instances_df=property_instances)
+    pd.testing.assert_series_equal(property_instances['Property'], original_property_values)
     
 def test_create_property_elements_table_complete_properties():
     """
     Test whether a df with all a column for each property R2Element is returned
     in the case all R2Elements exist in the Property column of the input df.
     """
+    
     
 def test_create_property_elements_table_incomplete_properties():
     """
