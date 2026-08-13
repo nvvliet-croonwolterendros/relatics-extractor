@@ -81,8 +81,26 @@ def test_create_property_elements_table_false_cardinality_to_one():
     truly a :1 cardinality
     """
     
-def test_create_property_elements_table_false_cardinality_to_many():
+def test_create_link_tables_only_to_many_cardinality():
     """
-    Test whether the function give an error when the a :n cardinality relation 
-    has name 'Heeft property'
+    Test whether link tables are only created for relations with cardinality :n
+    """
+     
+    
+def test_create_link_tables_complete_tables():
+    """
+    Test whether a link table is create for every :n cardinality
+    """
+     
+
+def test_create_link_tables_correct_table_names():
+    """
+    Test whether a all link tables are named according to: 
+    raw_relatics__{R1Element}_{R2Element}
+    """
+    
+def test_create_link_tables_correct_column_names():
+    """
+    Test whether column names are correct for each link table:
+    {R1Element}_guid for fist column, {R2Element}_guid for second column
     """
