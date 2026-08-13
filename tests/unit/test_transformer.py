@@ -1,27 +1,51 @@
 import pytest
 import pandas as pd
+from src.processing import transformer
 
 @pytest.fixture
-def PropertyInstances():
-    return pd.read_parquet('fixtures/test_transformer/PropertyInstances.parquet')
+def property_instances():
+    return pd.read_parquet('tests/unit/fixtures/test_transformer/PropertyInstances.parquet')
 
 @pytest.fixture
-def Properties():
-    return pd.read_parquet('fixtures/test_transformer/Properties.parquet')
+def properties():
+    return pd.read_parquet('tests/unit/fixtures/test_transformer/Properties.parquet')
 
 def test_create_property_table_complete_properties():
     """
     Test whether a df with all a column for each property is returned
     in the case all properties exist in the Property column of the input df.
-    Also test if eacg R1InstanceID only appears once.
+    Also test if each R1InstanceID only appears once.
     """
+    data_property_instance = [{'R1Instance': 'AB010', 'R1InstanceID': 'cb14a391-7f6e-ee11-b6a1-001dd8d702bc', 'Property': 'ID', 'PropertyInstance': 'REQ-1233'}, {'R1Instance': 'AB010', 'R1InstanceID': 'cb14a391-7f6e-ee11-b6a1-001dd8d702bc', 'Property': 'ID OG', 'PropertyInstance': 'MAS-0051'}, {'R1Instance': 'AB100', 'R1InstanceID': 'f0ed48e5-7f6e-ee11-b6a1-001dd8d702bc', 'Property': 'ID', 'PropertyInstance': 'REQ-1389'}, {'R1Instance': 'AB100', 'R1InstanceID': 'f0ed48e5-7f6e-ee11-b6a1-001dd8d702bc', 'Property': 'ID OG', 'PropertyInstance': 'MAS-0347'}, {'R1Instance': 'AB110', 'R1InstanceID': '4ab472c1-7f6e-ee11-b6a1-001dd8d702bc', 'Property': 'ID', 'PropertyInstance': 'REQ-1337'}, {'R1Instance': 'AB110', 'R1InstanceID': '4ab472c1-7f6e-ee11-b6a1-001dd8d702bc', 'Property': 'ID OG', 'PropertyInstance': 'MAS-0241'}, {'R1Instance': 'AB200', 'R1InstanceID': '5adf5bd3-7f6e-ee11-b6a1-001dd8d702bc', 'Property': 'ID', 'PropertyInstance': 'REQ-1360'}, {'R1Instance': 'AB200', 'R1InstanceID': '5adf5bd3-7f6e-ee11-b6a1-001dd8d702bc', 'Property': 'ID OG', 'PropertyInstance': 'MAS-0282'}, {'R1Instance': 'AB210', 'R1InstanceID': 'ce4d8da9-7f6e-ee11-b6a1-001dd8d702bc', 'Property': 'ID', 'PropertyInstance': 'REQ-1281'}, {'R1Instance': 'AB210', 'R1InstanceID': 'ce4d8da9-7f6e-ee11-b6a1-001dd8d702bc', 'Property': 'ID OG', 'PropertyInstance': 'MAS-0145'}]
+    df_property_instance = pd.DataFrame(data_property_instance)
+
+    data_property = [{'Property': 'ID', 'PropertyID': 'fbe697dc-2a31-e911-a2d5-00155d641103'}, {'Property': 'ID OG', 'PropertyID': '03e797dc-2a31-e911-a2d5-00155d641103'}]
+    df_property = pd.DataFrame(data_property)
+
+    all_properties = df_property["Property"].apply(transformer._normalize_value).dropna().unique().tolist()
+    all_properties.append("R1InstanceID")
+    transformed_table = transformer._create_property_table(properties_df=df_property, property_instances_df=df_property_instance)
+
+    assert set(transformed_table.columns) == set(all_properties)
+    assert len(transformed_table.columns.tolist()) == len(all_properties) # Order is irrelevant so a == operator will yield unwanted result. The set + len will ensure the list is the same
+    assert 'R1InstanceID' in transformed_table.columns.tolist()
+    assert transformed_table['R1InstanceID'].unique().shape[0] == transformed_table['R1InstanceID'].shape[0]
+
     
-def test_create_property_table_incomplete_properties():
+def test_create_property_table_incomplete_properties(properties, property_instances):
     """
     Test whether a df with all a column for each property is returned
     in the case not all properties exist in the Property column of the input df.
-    Also test if eacg R1InstanceID only appears once.
+    Also test if each R1InstanceID only appears once.
     """
+    all_properties = properties["Property"].apply(transformer._normalize_value).dropna().unique().tolist()
+    all_properties.append("R1InstanceID")
+    transformed_table = transformer._create_property_table(properties_df=properties, property_instances_df=property_instances)
+
+    assert set(transformed_table.columns) == set(all_properties)
+    assert len(transformed_table.columns.tolist()) == len(all_properties) # Order is irrelevant so a == operator will yield unwanted result. The set + len will ensure the list is the same
+    assert 'R1InstanceID' in transformed_table.columns.tolist()
+    assert transformed_table['R1InstanceID'].unique().shape[0] == transformed_table['R1InstanceID'].shape[0]
 
 def test_create_property_table_no_properties():
     """

@@ -29,7 +29,8 @@ def create_element_tables(
     Using the Relations table create a rename-map duplicate R2Elements by adding the (SQL safe) Relation name as a prefix.
     In the RelationInstances table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
     
-    Merge property_table, property_elements_table and to_one_relations_table on relation_instances_df
+    set R1InstanceID as the index on element_instances_df
+    Merge property_table, property_elements_table and to_one_relations_table on element_instances_df on R1InstanceID as index
     
     rename columns or the element table using the COLUMN_MAP
     
@@ -47,20 +48,19 @@ def _create_property_table(
     Ensures a column exists for every property of the element.
     """
     # Get all unique properties, throw warning if it is empty
-    unique_properties = properties_df.rename(columns=_normalize_value)
-    unique_properties_list = unique_properties[PROPERTY_COL].dropna().unique().tolist()
+    # unique_properties = properties_df.rename(columns=_normalize_value)
+    unique_properties_list = properties_df[PROPERTY_COL].apply(_normalize_value).dropna().unique().tolist()
     if len(unique_properties_list) == 0:
         logging.warning("No properties found in properties report part.")
 
+    # normalize 
+    property_instances_df[PROPERTY_COL] = property_instances_df[PROPERTY_COL].apply(_normalize_value) 
     try:
-        pivot_property_instances_df = property_instances_df.pivot(index=[R1INSTANCEID_COL, R1INSTANCE_COL], columns=PROPERTY_COL, values=PROPERTYINSTANCE_COL)
+        pivot_property_instances_df = property_instances_df.pivot(index=R1INSTANCEID_COL, columns=PROPERTY_COL, values=PROPERTYINSTANCE_COL).rename_axis(columns=None).reset_index()
     except ValueError:
-        logging.exception("Failed to pivot table, likely due to duplicates")
+        logging.exception("Failed to pivot table, likely due to duplicates property names.")
         raise
-
-    renamed_property_instances_df = pivot_property_instances_df.rename(columns=_normalize_value)
-    # Colmap moet nog gedaan worden volgens mij mist hier ook de R1ElementGuid enzo die wel bij de v2 report aanwezig is.
-    reindexed_property_instances_df = renamed_property_instances_df.reindex(BASE_COLS + unique_properties_list, fill_value='')
+    reindexed_property_instances_df = pivot_property_instances_df.reindex(columns=[R1INSTANCEID_COL] + unique_properties_list, fill_value='')
     return reindexed_property_instances_df
     
 def _create_property_elements_table(
