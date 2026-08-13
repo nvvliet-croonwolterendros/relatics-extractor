@@ -25,9 +25,12 @@ def create_element_tables(
     """
     Takes the 6 input tables for a given element.
     
-    In the Relations table Renames R2Elements to make them SQL safe.
-    Using the Relations table create a rename-map duplicate R2Elements by adding the (SQL safe) Relation name as a prefix.
-    In the RelationInstances table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
+    Split the following into seprate function:
+        In the Relations table Renames R2Elements to make them SQL safe.
+        Using the Relations table create a rename-map duplicate R2Elements by adding the (SQL safe) Relation name as a prefix.
+        Check if there are duplicate R2Elements even after renaming.
+        Rename R2Elements in the RelationInstances table using the rename map.
+        In the RelationInstances table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
     
     set R1InstanceID as the index on element_instances_df
     Merge property_table, property_elements_table and to_one_relations_table on element_instances_df on R1InstanceID as index
@@ -88,12 +91,12 @@ def _create_link_tables(
     r1_element: str,
     relations_df: pd.DataFrame,
     relations_instances_df: pd.DataFrame
-) -> pd.DataFrame:
+) -> Dict[str, pd.DataFrame]:
     """
     Filters on cardinality :n
     Create a table for each R2Element with columns for R1ElementID and R2ElementID
     The names of these columns should be the element names with suffix _guid.
-    The table name should be equal to {R1Element}_{R2Element}
+    The table name should be equal to raw_relatics__{R1Element}_{R2Element}.
     Ensures a link table exists for each R2Element.
     """
 
