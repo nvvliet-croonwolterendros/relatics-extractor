@@ -114,23 +114,41 @@ def test_create_property_table_does_not_mutate_input():
     
 def test_create_property_elements_table_complete_properties():
     """
-    Test whether a df with all a column for each property R2Element is returned
-    in the case all R2Elements exist in the Property column of the input df.
+    Test whether a df with a column for each property R2Element is returned
+    for all R2Elements that exist in the Property column of the relations df.
+    In case all Relations exist in the RelationInstances df.
+    Also test if the columns are filled in with R2Instance.
     """
-    
     
 def test_create_property_elements_table_incomplete_properties():
     """
-    Test whether a df with all a column for each property R2Element is returned
-    in the case not all R2Elements exist in the Property column of the input df.
+    Test whether a df with a column for each property R2Element is returned
+    for all R2Elements that exist in the Property column of the relations df.
+    In case not all Relations exist in the RelationInstances df.
+    Also test if the columns are filled with R2Instance for the existing relations and empty for not existing relations.
+    """
+
+def test_create_property_elements_table_empty_properties():
+    """
+    Test whether a df with a column for each property R2Element is returned
+    for all R2Elements that exist in the Property column of the relations df.
+    In case no Relations exist in the RelationInstances df.
+    Also test if the columns are empty.
     """
     
 def test_create_property_elements_table_only_uses_to_one():
     """
-    Test whether the function only uses the relations with a :1 cardinality
+    Test whether the function only uses the relations with a :1 cardinality.
+    :1 relation includes 0/n/1:1 or 0/n/1:1|1.
+    This filters out the :1|n or :n|1 possibility.
     """
     
 def test_create_property_elements_table_only_uses_property_elements():
+    """
+    Test whether the function only uses the relations with name 'Heeft property'
+    """
+
+def test_create_property_elements_table_ignores_relations_with_WEG_in_name():
     """
     Test whether the function only uses the relations with name 'Heeft property'
     """
@@ -140,9 +158,31 @@ def test_create_property_elements_table_false_cardinality_to_one():
     Test whether the function give an error when the a :1 cardinality is not 
     truly a :1 cardinality
     """
+
+def test_create_to_one_relations_table_complete_properties():
+    """
+    Test whether a df with a column for each property R2Element is returned
+    for all R2Elements that exist in the Property column of the relations df.
+    In case all Relations exist in the RelationInstances df.
+    Also test if the columns are filled in with R2InstanceID and the column name is the R2Element + _guid suffix.
+    """
     
-def test_create_property_elements_table_false_cardinality_to_many():
+def test_create_to_one_relations_table_incomplete_properties():
     """
-    Test whether the function give an error when the a :n cardinality relation 
-    has name 'Heeft property'
+    Test whether a df with a column for each property R2Element is returned
+    for all R2Elements that exist in the Property column of the relations df.
+    In case not all Relations exist in the RelationInstances df.
+    Also test if the columns are filled with R2InstanceID for the existing relations and empty for not existing relations
+    and the column name is the R2Element + _guid suffix.
     """
+
+def test_create_to_one_relations_table_empty_properties():
+    """
+    Test whether a df with a column for each property R2Element is returned
+    for all R2Elements that exist in the Property column of the relations df.
+    In case no Relations exist in the RelationInstances df.
+    Also test if the columns are empty and the column name is the R2Element + _guid suffix.
+    """
+
+
+# Bij link table toevoegen :1 relation icm heeft property relation name
