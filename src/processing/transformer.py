@@ -16,31 +16,33 @@ R1INSTANCEID_COL = "R1InstanceID"
 PROPERTY_COL = "Property"
 PROPERTYINSTANCE_COL = "PropertyInstance"
 
-BASE_COLS = ["guid", "naam", "omschrijving", "richtext"]
-
 def create_element_tables(
     tables: Dict[str, pd.DataFrame],
     column_map: Dict[str,str] = COLUMN_MAP 
 ) -> Dict[str, pd.DataFrame]:
     """
     Takes the 6 input tables for a given element.
-    
-    Split the following into seprate function:
-        In the Relations table Renames R2Elements to make them SQL safe.
-        Using the Relations table create a rename-map duplicate R2Elements by adding the (SQL safe) Relation name as a prefix.
-        Check if there are duplicate R2Elements even after renaming.
-        Rename R2Elements in the RelationInstances table using the rename map.
-        In the RelationInstances table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
-    
-    set R1InstanceID as the index on element_instances_df
-    Merge property_table, property_elements_table and to_one_relations_table on element_instances_df on R1InstanceID as index
-    
-    rename columns or the element table using the COLUMN_MAP
-    
+    Transform the reltions table. 
+    Create the property_table, property_elements_table and to_one_relations_table.
+    Set R1InstanceID as the index on element_instances_df.
+    Merge property_table, property_elements_table and to_one_relations_table on element_instances_df on R1InstanceID as index.
+    Rename columns of the element table using the COLUMN_MAP.
+    Create the link tables.
     Returns the element table and required link tables for the element.
     """
     pass
     
+def _transform_relations_table(
+    relations_df: pd.DataFrame
+) -> pd.DataFrame: 
+    """
+    In the RelationInstances table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
+    Raise error if there are duplicate R2Element Relation combinations in the Relations table.
+    Using the Relations table create a rename-map duplicate R2Elements to {Relation}_{R2Element}.
+    Rename R2Elements in the RelationInstances table using the rename map.
+    In the Relations table Renames R2Elements to make them SQL safe.
+    """
+
 def _create_property_table(
     properties_df: pd.DataFrame,
     property_instances_df: pd.DataFrame

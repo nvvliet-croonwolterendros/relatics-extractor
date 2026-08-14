@@ -84,8 +84,7 @@ def test_create_property_elements_table_false_cardinality_to_one():
 def test_create_link_tables_only_to_many_cardinality():
     """
     Test whether link tables are only created for relations with cardinality :n
-    """
-     
+    """ 
     
 def test_create_link_tables_complete_tables():
     """
@@ -104,3 +103,38 @@ def test_create_link_tables_correct_column_names():
     Test whether column names are correct for each link table:
     {R1Element}_guid for fist column, {R2Element}_guid for second column
     """
+    
+def test_transform_relations_table_returns_sql_safe_only():
+    """
+    Test whether all R2Element names returned are sql safe
+    """
+
+def test_transform_relations_table_no_duplicate_names():
+    """
+    Test whether R2Element    
+    """    
+
+def test_transform_relations_table_duplicate_names():
+    """
+    Test whether duplicate R2Element are renamed to {Relation}_{R2Element}    
+    """    
+    
+def test_transform_relations_table_duplicate_name_and_relation():
+    """
+    Test whether a error is raised when the Relations table contains a
+    duplicate R2Element and Relation combination
+    """
+    
+def test_transform_relations_table_no_children():
+    """
+    Test whether the output contains the same R2Elements as the input in 
+    case no children Elements are present
+    """
+    
+def test_tranform_relations_table_children():
+    """
+    Test whether the output contains the Children R2Elements instead of the
+    R2Elements in case children Elements are present
+    """
+    
+
