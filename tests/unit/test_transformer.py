@@ -10,6 +10,14 @@ def property_instances():
 def properties():
     return pd.read_parquet('tests/unit/fixtures/test_transformer/Properties.parquet')
 
+@pytest.fixture
+def relations():
+    return pd.read_parquet("tests/unit/fixtures/test_transformer/Relations.parquet")
+
+@pytest.fixture
+def relation_instances():
+    return pd.read_parquet("tests/unit/fixtures/test_transformer/RelationsInstances.parquet")
+
 def test_create_property_table_complete_properties():
     """
     Test whether a df with all a column for each property is returned
@@ -81,11 +89,36 @@ def test_create_property_elements_table_false_cardinality_to_one():
     truly a :1 cardinality
     """
     
-def test_create_link_tables_only_to_many_cardinality():
+def test_create_link_tables_only_to_many_cardinality(relations, relation_instances):
     """
     Test whether link tables are only created for relations with cardinality :n
-    """ 
-    
+    """
+    relations = pd.DataFrame({
+        'Relation': ['Bevat (S)', 'Heeft', 'Heeft', 'Heeft', 'Heeft'],
+        'Cardinality': ['0:n', '0:1', '0:n', '0:n', '0:n'],
+        'RelationID': [
+            '1731cf9e-0239-e911-a2d7-00155d641104',
+            'e1ecc874-0759-ee11-b6a0-001dd8d702bf',
+            '1a160899-b699-ea11-a2ec-00155d641103',
+            '73d4bcc7-f731-e911-a2d5-00155d641103',
+            '924d97e4-f731-e911-a2d5-00155d641103'
+        ],
+        'R2Element': [
+            'Eis',
+            'Honorering',
+            'Toelichting',
+            'Commentaar',
+            'Verificatievoorschrift'
+        ],
+        'R2ElementID': [
+            '4dfa1495-7a2f-e911-a2d5-00155d641103',
+            '2d821dd9-0259-ee11-b6a0-001dd8d702bf',
+            'ae962581-b699-ea11-a2ec-00155d641103',
+            '275a8d8a-852f-e911-a2d5-00155d641103',
+            '7be9db74-892f-e911-a2d5-00155d641103'
+        ]
+    })
+            
 def test_create_link_tables_complete_tables():
     """
     Test whether a link table is create for every :n cardinality
