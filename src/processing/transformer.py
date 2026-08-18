@@ -92,6 +92,17 @@ def _create_property_elements_table(
     Pivots the relation_instances_df so the R2Element names are on the column axis.
     Ensures a column exists for each R2Element.
     """
+    relations_df = relations_df.copy()
+    relations_instances_df = relations_instances_df.copy()
+
+    # Filter to only have :1 cardinality and 'Heeft property' relations
+    prop_relations = relations_df[relations_df['Relation'].str.contains('Heeft property', na=False)]
+    prop_relations = _filter_cardinality(df=prop_relations, cardinality='one')
+
+    # Get all property instance relations by filtering R2 element being the property name, then pivot so that the index is the R1InstanceID for later joins.
+    prop_relation_instances = relations_instances_df[relations_instances_df['R2Element'].isin(prop_relations['R2Element'])]
+    
+    return prop_relation_instances.pivot(index='R1InstanceID', columns='R2Element', values='R2Instance').reindex(columns=prop_relations['R2Element']).rename_axis(columns=None)
     
 def _create_to_one_relations_table(
     relations_df: pd.DataFrame,
