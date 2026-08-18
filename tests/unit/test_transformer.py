@@ -123,42 +123,201 @@ def test_create_property_table_does_not_mutate_input():
 def test_create_property_elements_table_complete_properties():
     """
     Test whether a df with a column for each property R2Element is returned
-    for all R2Elements that exist in the Property column of the relations df.
-    In case all Relations exist in the RelationInstances df.
-    Also test if the columns are filled in with R2Instance.
+    when all relations exist in relation_instances_df.
     """
-    # relations_data = {'Relation': {28: 'Heeft property', 29: 'Heeft property', 30: 'Heeft property', 31: 'Heeft property', 32: 'Heeft property'}, 'Cardinality': {28: '0:1', 29: '0:1', 30: '0:1', 31: '0:1', 32: '0:1'}, 'RelationID': {28: '108e6382-9747-f011-b6c2-001dd8d702bc', 29: '25e40114-69d5-ea11-a2f0-00155d641104', 30: '44b531ee-9aae-ec11-b688-001dd8d702bf', 31: '458f8a61-75f5-e911-a2e5-00155d641104', 32: '488f8a61-75f5-e911-a2e5-00155d641104'}, 'R2Element': {28: 'SRA Thema', 29: 'SMART-analyse', 30: 'Type', 31: 'Geldig tot en met', 32: 'Geldig vanaf'}, 'R2ElementID': {28: 'fe4a0331-9547-f011-b6c2-001dd8d702bc', 29: '9dc8ef06-69d5-ea11-a2f0-00155d641104', 30: 'fa7e60d4-9aae-ec11-b688-001dd8d702bf', 31: '2ecb4ecc-d1f4-e911-a2e5-00155d641104', 32: '8f4ecdda-d1f4-e911-a2e5-00155d641104'}}
+    relations_df = pd.DataFrame({
+        'Relation': ['Heeft property', 'Heeft property'],
+        'Cardinality': ['0:1', '0:1'],
+        'R2Element': ['SRA status', 'Geaccepteerd door ON']
+    })
     
-    
+    relations_instances_df = pd.DataFrame({
+        'R1InstanceID': ['id_1', 'id_1'],
+        'R2Element': ['SRA status', 'Geaccepteerd door ON'],
+        'R2Instance': ['Overeengekomen OG/ON', 'Niet behandeld']
+    })
+
+    result = transformer._create_property_elements_table(relations_df, relations_instances_df)
+
+    assert list(result.columns) == ['SRA status', 'Geaccepteerd door ON']
+    assert len(result) == 1
+    assert result.loc['id_1', 'SRA status'] == 'Overeengekomen OG/ON'
+    assert result.loc['id_1', 'Geaccepteerd door ON'] == 'Niet behandeld'
+
+
 def test_create_property_elements_table_incomplete_properties():
     """
-    Test whether a df with a column for each property R2Element is returned
-    for all R2Elements that exist in the Property column of the relations df.
-    In case not all Relations exist in the RelationInstances df.
-    Also test if the columns are filled with R2Instance for the existing relations and empty for not existing relations.
+    Test whether all property columns are present even if some relations
+    are missing from relation_instances_df, filling missing cells with NaN.
     """
+    relations_df = pd.DataFrame({
+        'Relation': ['Heeft property', 'Heeft property'],
+        'Cardinality': ['0:1', '0:1'],
+        'R2Element': ['SRA status', 'SMART-analyse OG']
+    })
+    
+    # Missing 'SMART-analyse OG' in instance data
+    relations_instances_df = pd.DataFrame({
+        'R1InstanceID': ['id_1'],
+        'R2Element': ['SRA status'],
+        'R2Instance': ['Overeengekomen OG/ON']
+    })
+
+    result = transformer._create_property_elements_table(relations_df, relations_instances_df)
+
+    assert list(result.columns) == ['SRA status', 'SMART-analyse OG']
+    assert result.loc['id_1', 'SRA status'] == 'Overeengekomen OG/ON'
+    assert pd.isna(result.loc['id_1', 'SMART-analyse OG'])
+
 
 def test_create_property_elements_table_empty_properties():
     """
-    Test whether a df with a column for each property R2Element is returned
-    for all R2Elements that exist in the Property column of the relations df.
-    In case no Relations exist in the RelationInstances df.
-    Also test if the columns are empty.
+    Test whether empty DataFrame with the expected columns is returned
+    when no instances match the relations.
     """
+    relations_df = pd.DataFrame({
+        'Relation': ['Heeft property', 'Heeft property'],
+        'Cardinality': ['0:1', '0:1'],
+        'R2Element': ['SRA status', 'SMART-analyse OG']
+    })
     
+    relations_instances_df = pd.DataFrame(columns=['R1InstanceID', 'R2Element', 'R2Instance'])
+
+    result = transformer._create_property_elements_table(relations_df, relations_instances_df)
+
+    assert list(result.columns) == ['SRA status', 'SMART-analyse OG']
+    assert len(result) == 0
+
+
 def test_create_property_elements_table_only_uses_to_one():
     """
-    Test whether the function only uses the relations with a :1 cardinality.
-    :1 relation includes 0/n/1:1 or 0/n/1:1|1.
-    This filters out the :1|n or :n|1 possibility.
+    Test whether relations with non-to-one cardinality (e.g., 0:n) are excluded.
+    Also test the piped cardinality patterns: '0:1|1' should count as to-one,
+    while '0:1|n' should not.
     """
-    
+    relations_df = pd.DataFrame({
+        'Relation': ['Heeft property', 'Heeft property', 'Heeft property', 'Heeft property'],
+        'Cardinality': ['0:1', '0:n', '0:1|1', '0:1|n'],
+        'R2Element': ['SRA status', 'Eis', 'SMART-analyse OG', 'Geldig tot en met']
+    })
+
+    relations_instances_df = pd.DataFrame({
+        'R1InstanceID': ['id_1', 'id_1', 'id_1', 'id_1'],
+        'R2Element': ['SRA status', 'Eis', 'SMART-analyse OG', 'Geldig tot en met'],
+        'R2Instance': ['Overeengekomen OG/ON', 'B-AB500', 'Analyse Y', 'Datum Z']
+    })
+
+    result = transformer._create_property_elements_table(relations_df, relations_instances_df)
+
+    assert 'SRA status' in result.columns
+    assert 'Eis' not in result.columns
+    assert 'SMART-analyse OG' in result.columns
+    assert 'Geldig tot en met' not in result.columns
+
+
 def test_create_property_elements_table_only_uses_property_elements():
     """
-    Test whether the function only uses the relations with name 'Heeft property'.
-    Also throw an exception if the combination Relation + R2InstanceID is not unique
-    i.e. 'Heeft' relation with 'Status' element twice.
+    Test whether non-'Heeft property' relations are excluded, and throws
+    a ValueError if duplicate R1InstanceID + R2Element pairs exist.
     """
+    relations_df = pd.DataFrame({
+        'Relation': ['Heeft property', '[WEG] Heeft'],
+        'Cardinality': ['0:1', '0:1'],
+        'R2Element': ['SRA status', 'Commentaar OG']
+    })
+    
+    relations_instances_df = pd.DataFrame({
+        'R1InstanceID': ['id_1', 'id_1'],
+        'R2Element': ['SRA status', 'Commentaar OG'],
+        'R2Instance': ['Overeengekomen OG/ON', 'Some comment']
+    })
+
+    result = transformer._create_property_elements_table(relations_df, relations_instances_df)
+    
+    assert 'SRA status' in result.columns
+    assert 'Commentaar OG' not in result.columns
+
+    # Test Exception trigger on duplicate R1InstanceID + R2Element
+    duplicate_instances_df = pd.DataFrame({
+        'R1InstanceID': ['id_1', 'id_1'],
+        'R2Element': ['SRA status', 'SRA status'],
+        'R2Instance': ['Val1', 'Val2']
+    })
+
+    with pytest.raises(ValueError):
+        transformer._create_property_elements_table(relations_df, duplicate_instances_df)
+
+# Start of AI generated tests:
+def test_create_property_elements_table_multiple_instances():
+    """
+    Test that values are correctly aligned per R1InstanceID when multiple
+    entities are present, not just per column.
+    """
+    relations_df = pd.DataFrame({
+        'Relation': ['Heeft property', 'Heeft property'],
+        'Cardinality': ['0:1', '0:1'],
+        'R2Element': ['SRA status', 'Geaccepteerd door ON']
+    })
+
+    relations_instances_df = pd.DataFrame({
+        'R1InstanceID': ['id_1', 'id_1', 'id_2', 'id_2'],
+        'R2Element': ['SRA status', 'Geaccepteerd door ON', 'SRA status', 'Geaccepteerd door ON'],
+        'R2Instance': ['Overeengekomen OG/ON', 'Niet behandeld', 'Afgewezen', 'Behandeld']
+    })
+
+    result = transformer._create_property_elements_table(relations_df, relations_instances_df)
+
+    assert len(result) == 2
+    assert result.loc['id_1', 'SRA status'] == 'Overeengekomen OG/ON'
+    assert result.loc['id_1', 'Geaccepteerd door ON'] == 'Niet behandeld'
+    assert result.loc['id_2', 'SRA status'] == 'Afgewezen'
+    assert result.loc['id_2', 'Geaccepteerd door ON'] == 'Behandeld'
+
+def test_create_property_elements_table_column_order_follows_relations_df():
+    """
+    Test that output column order matches the order of R2Element in
+    relations_df, even when relations_instances_df rows are in a
+    different order.
+    """
+    relations_df = pd.DataFrame({
+        'Relation': ['Heeft property', 'Heeft property', 'Heeft property'],
+        'Cardinality': ['0:1', '0:1', '0:1'],
+        'R2Element': ['SRA status', 'Type', 'SMART-analyse OG']
+    })
+
+    # Instance rows deliberately out of order relative to relations_df
+    relations_instances_df = pd.DataFrame({
+        'R1InstanceID': ['id_1', 'id_1', 'id_1'],
+        'R2Element': ['SMART-analyse OG', 'SRA status', 'Type'],
+        'R2Instance': ['Analyse Y', 'Overeengekomen OG/ON', 'Type X']
+    })
+
+    result = transformer._create_property_elements_table(relations_df, relations_instances_df)
+
+    assert list(result.columns) == ['SRA status', 'Type', 'SMART-analyse OG']
+
+def test_create_property_elements_table_clears_columns_axis_name():
+    """
+    Test that the resulting columns Index has no name, since pivot()
+    otherwise leaves the columns axis named 'R2Element'.
+    """
+    relations_df = pd.DataFrame({
+        'Relation': ['Heeft property'],
+        'Cardinality': ['0:1'],
+        'R2Element': ['SRA status']
+    })
+
+    relations_instances_df = pd.DataFrame({
+        'R1InstanceID': ['id_1'],
+        'R2Element': ['SRA status'],
+        'R2Instance': ['Overeengekomen OG/ON']
+    })
+
+    result = transformer._create_property_elements_table(relations_df, relations_instances_df)
+
+    assert result.columns.name is None
+
+# Einde AI gen tests
     
 def test_create_property_elements_table_false_cardinality_to_one():
     """
@@ -191,6 +350,11 @@ def test_create_to_one_relations_table_empty_properties():
     Also test if the columns are empty and the column name is the R2Element + _guid suffix.
     """
 
+def test_create_to_one_relations_table_duplicateR2_Elements():
+    """
+    Test whether the function correctly handles multiple R2Elements with the same name.
+    This can heppen if for example 'Rol' is used in multiple ways. The relation name should be prefixing the R2 element.
+    """
 
 # Bij link table toevoegen :1 relation icm heeft property relation name
     

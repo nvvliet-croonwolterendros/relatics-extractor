@@ -43,7 +43,8 @@ def create_element_tables(
     pass
     
 def _transform_relations_table(
-    relations_df: pd.DataFrame
+    relations_df: pd.DataFrame,
+    relations_instances_df: pd.DataFrame
 ) -> pd.DataFrame: 
     """
     In the RelationInstances table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
@@ -53,6 +54,8 @@ def _transform_relations_table(
     In the Relations table Renames R2Elements to make them SQL safe.
     
     Important: the R2Element should also be renamed when the R2Element = R1Element
+
+    Rename mapping must be done in both relations_df and relation_instance_df
     """
 
 def _create_property_table(
@@ -95,14 +98,24 @@ def _create_property_elements_table(
     relations_df = relations_df.copy()
     relations_instances_df = relations_instances_df.copy()
 
+    logger.debug('Start processing create property elements table')
     # Filter to only have :1 cardinality and 'Heeft property' relations
     prop_relations = relations_df[relations_df['Relation'].str.contains('Heeft property', na=False)]
     prop_relations = _filter_cardinality(df=prop_relations, cardinality='one')
 
     # Get all property instance relations by filtering R2 element being the property name, then pivot so that the index is the R1InstanceID for later joins.
-    prop_relation_instances = relations_instances_df[relations_instances_df['R2Element'].isin(prop_relations['R2Element'])]
-    
-    return prop_relation_instances.pivot(index='R1InstanceID', columns='R2Element', values='R2Instance').reindex(columns=prop_relations['R2Element']).rename_axis(columns=None)
+    prop_relation_instances = relations_instances_df[relations_instances_df[R2ELEMENT_COL].isin(prop_relations[R2ELEMENT_COL])]
+
+    # Raise exception if R1InstanceID + R2Element combination is not unique
+    if prop_relation_instances.duplicated(subset=[R1INSTANCEID_COL, R2ELEMENT_COL]).any():
+        raise ValueError("Duplicate entries found for R1InstanceID and R2Element combination.")
+
+    # Handle empty instances edge case before pivoting
+    if prop_relation_instances.empty:
+        logger.info('No property instances found, returning empty df.')
+        return pd.DataFrame(columns=prop_relations[R2ELEMENT_COL].unique()).rename_axis(R1INSTANCEID_COL)
+
+    return prop_relation_instances.pivot(index=R1INSTANCEID_COL, columns=R2ELEMENT_COL, values=R2INSTANCE_COL).reindex(columns=prop_relations[R2ELEMENT_COL].unique()).rename_axis(columns=None)
     
 def _create_to_one_relations_table(
     relations_df: pd.DataFrame,
@@ -114,6 +127,34 @@ def _create_to_one_relations_table(
     Ensures a column exists for each R2Element.
     Add the suffix '_guid' to each column except R1InstanceID.
     """
+    relations_df = relations_df.copy()
+    relations_instances_df = relations_instances_df.copy()
+
+    logger.debug('Start processing create to one relations elements table')
+    # Filter to only have :1 cardinality and not 'Heeft property' relations
+    relations = relations_df[~relations_df['Relation'].str.contains('Heeft property', na=False)]
+    relations = _filter_cardinality(df=relations, cardinality='one')
+
+    # Get a new column where you construct the column name used later. it's easier to do it here as to ensure all relations are always present.
+    # Check if a R2Element occurs multiple times, if yes add the relation name in front. if not do nothing. For both cases append_guid.
+
+    n_relationids_per_R2element = relations.groupby('R2Element')['RelationID'].transform('nunique')
+    needs_prefix = n_relationids_per_R2element > 1 # This is a mask to be used for later transformations.
+
+    relations['R2Element_resolved'] = relations['R2Element'] + "_guid"
+    # Use the mask created above to indentify the rows that need a prefix and add this prefix
+    relations.loc[needs_prefix, 'R2Element_resolved'] = (
+        relations.loc[needs_prefix, 'Relation'] + '_' + relations.loc[needs_prefix, 'R2Element']
+    )
+    # Create the mapping for the element table for later, apply just before the pivot and use this column for the pivor instead of R2Element.
+    columnname_mapping_R2Element = relations.set_index('RelationID')['R2Element_resolved'].to_dict()
+
+    # Create dataframe with relation instances based on the mask generated above. This table now contains all to one relations that are not preperty elements.
+    relation_elements = relations_instances_df[relations_instances_df['RelationID'].isin(relations['RelationID'])]
+    relation_elements['R2Element_resolved'] = relation_elements['RelationID'].map(columnname_mapping_R2Element)
+    # Pivot so that the index is R1InstanceID and columns are the 
+    relation_elements = relation_elements.pivot(index='R1InstanceID', columns='R2Element_resolved', values='R2InstanceID').reindex(columns=relations['R2Element_resolved']).rename_axis(columns=None)
+    return relation_elements
     
 def _create_link_tables(
     r1_element: str,
