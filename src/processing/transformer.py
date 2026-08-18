@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Dict
+from typing import Dict, Literal
 import unicodedata
 import re
 import logging
@@ -16,7 +16,13 @@ R1INSTANCEID_COL = "R1InstanceID"
 PROPERTY_COL = "Property"
 PROPERTYINSTANCE_COL = "PropertyInstance"
 
-BASE_COLS = ["guid", "naam", "omschrijving", "richtext"]
+CARDINALITY_COL = "Cardinality"
+
+R2ELEMENT_COL = "R2Element"
+R2ELEMENTID_COL = "R2ElementID"
+
+R2INSTANCE_COL = "R2Instance"
+R2INSTANCEID_COL = "R2InstanceID"
 
 def create_element_tables(
     tables: Dict[str, pd.DataFrame],
@@ -24,20 +30,29 @@ def create_element_tables(
 ) -> Dict[str, pd.DataFrame]:
     """
     Takes the 6 input tables for a given element.
-    
-    In the Relations table Renames R2Elements to make them SQL safe.
-    Using the Relations table create a rename-map duplicate R2Elements by adding the (SQL safe) Relation name as a prefix.
-    In the RelationInstances table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
-    
-    set R1InstanceID as the index on element_instances_df
-    Merge property_table, property_elements_table and to_one_relations_table on element_instances_df on R1InstanceID as index
-    
-    rename columns or the element table using the COLUMN_MAP
-    
+    Transform the reltions table. 
+    Create the property_table, property_elements_table and to_one_relations_table.
+    Set R1InstanceID as the index on element_instances_df.
+    Merge property_table, property_elements_table and to_one_relations_table on element_instances_df on R1InstanceID as index.
+    Rename columns of the element table using the COLUMN_MAP.
+    Create the link tables.
     Returns the element table and required link tables for the element.
     """
     pass
     
+def _transform_relations_table(
+    relations_df: pd.DataFrame
+) -> pd.DataFrame: 
+    """
+    In the RelationInstances table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
+    Raise error if there are duplicate R2Element Relation combinations in the Relations table.
+    Using the Relations table create a rename-map duplicate R2Elements to {Relation}_{R2Element}.
+    Rename R2Elements in the RelationInstances table using the rename map.
+    In the Relations table Renames R2Elements to make them SQL safe.
+    
+    Important: the R2Element should also be renamed when the R2Element = R1Element
+    """
+
 def _create_property_table(
     properties_df: pd.DataFrame,
     property_instances_df: pd.DataFrame
@@ -91,14 +106,57 @@ def _create_link_tables(
     r1_element: str,
     relations_df: pd.DataFrame,
     relations_instances_df: pd.DataFrame
-) -> pd.DataFrame:
+) -> Dict[str, pd.DataFrame]:
     """
     Filters on cardinality :n
     Create a table for each R2Element with columns for R1ElementID and R2ElementID
     The names of these columns should be the element names with suffix _guid.
-    The table name should be equal to {R1Element}_{R2Element}
+    The table name should be equal to raw_relatics__{R1Element}_{R2Element}.
     Ensures a link table exists for each R2Element.
     """
+    filtered_relations_df = _filter_cardinality(relations_df, "many")
+    filtered_relation_instances_df = _filter_cardinality(relations_instances_df, "many")
+    
+    link_tables = {}
+    
+    for r2_element in filtered_relations_df[R2ELEMENT_COL]:
+        
+        table_name = f"raw_relatics__{r1_element}_{r2_element}"
+        
+        mask = filtered_relation_instances_df[R2ELEMENT_COL] == str(r2_element)
+
+        table_df = filtered_relation_instances_df.loc[
+            mask,
+            [R1INSTANCEID_COL, R2INSTANCEID_COL]
+        ].reset_index(drop=True)
+        
+        link_tables[table_name] = table_df.rename(columns={
+            R1INSTANCEID_COL: f"{r1_element}_guid",
+            R2INSTANCEID_COL: f"{r2_element}_guid"
+        })
+    
+    return link_tables
+
+def _filter_cardinality(
+    df: pd.DataFrame,
+    cardinality: Literal["many", "one"]
+) -> pd.DataFrame:
+    """
+    Takes a Dataframe and filters on cardinality column
+    based on cardinality argument it either filters :n caridinality
+    or :1 cardinality
+    """
+    df[CARDINALITY_COL] = df[CARDINALITY_COL].map(
+        lambda x: ":n" 
+        if "n" in str(x).split(":")[-1]
+        else ":1"
+    ) 
+    
+    if cardinality == "many":
+        return df[df[CARDINALITY_COL] == ":n"]
+    
+    else:
+        return df[df[CARDINALITY_COL] == ":1"]
 
 def _normalize_value(val: str, max_length: int = 63) -> str:
     """
