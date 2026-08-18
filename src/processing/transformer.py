@@ -24,6 +24,8 @@ R2ELEMENTID_COL = "R2ElementID"
 R2INSTANCE_COL = "R2Instance"
 R2INSTANCEID_COL = "R2InstanceID"
 
+BASE_COLS = ["guid", "naam", "omschrijving", "richtext"]
+
 def create_element_tables(
     tables: Dict[str, pd.DataFrame],
     column_map: Dict[str,str] = COLUMN_MAP 
