@@ -512,34 +512,164 @@ def test_transform_relations_table_returns_sql_safe_only():
 
     assert relations_df_safe == True
 
+MODULE_PATH = "src.processing.transformer"  # used below for monkeypatching _normalize_value
+
+
+@pytest.fixture(autouse=True)
+def _identity_normalize(monkeypatch):
+    """
+    Patch _normalize_value to the identity function so these tests only
+    exercise the coalescing / duplicate-renaming logic, not whatever
+    SQL-safety string transformation _normalize_value happens to apply.
+    """
+    monkeypatch.setattr(f"{MODULE_PATH}._normalize_value", lambda x: x)
+
+
+def make_relations_df(rows):
+    """
+    rows: list of dicts with keys Relation, Cardinality, RelationID,
+    R2Element, R2ElementID, and optionally ChildR2Element/ChildR2ElementID
+    (default to '' when omitted, matching "no child" rows).
+    """
+    defaults = {"ChildR2Element": "", "ChildR2ElementID": ""}
+    full_rows = [{**defaults, **row} for row in rows]
+    return pd.DataFrame(full_rows, columns=[
+        "Relation", "Cardinality", "RelationID", "R2Element",
+        "R2ElementID", "ChildR2Element", "ChildR2ElementID",
+    ])
+
+
+def make_instances_df(rows):
+    """
+    rows: list of dicts matching relations_instances_df's columns.
+    """
+    return pd.DataFrame(rows, columns=[
+        "R1Instance", "R1InstanceID", "RelationInstanceID", "R2Instance",
+        "R2InstanceID", "R2Element", "R2ElementID", "Cardinality",
+        "RelationID", "R1Element",
+    ])
 
 
 def test_transform_relations_table_no_duplicate_names():
     """
-    Test whether R2Element    
-    """    
+    Test whether R2Element names are left unchanged when there are no
+    duplicate R2Element values and no self-referencing relations.
+    """
+    relations_df = make_relations_df([
+        {"Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
+         "R2Element": "Car", "R2ElementID": 100},
+        {"Relation": "Drives", "Cardinality": "1:1", "RelationID": 2,
+         "R2Element": "Bike", "R2ElementID": 200},
+    ])
+    instances_df = make_instances_df([
+        {"R1Instance": "Alice", "R1InstanceID": 1, "RelationInstanceID": 1,
+         "R2Instance": "Tesla", "R2InstanceID": 1000, "R2Element": "Car",
+         "R2ElementID": 100, "Cardinality": "1:N", "RelationID": 1,
+         "R1Element": "Person"},
+        {"R1Instance": "Bob", "R1InstanceID": 2, "RelationInstanceID": 2,
+         "R2Instance": "Yamaha", "R2InstanceID": 2000, "R2Element": "Bike",
+         "R2ElementID": 200, "Cardinality": "1:1", "RelationID": 2,
+         "R1Element": "Person"},
+    ])
+
+    result_relations, result_instances = transformer._transform_relations_table(relations_df, instances_df)
+
+    assert set(result_relations["R2Element"]) == {"Car", "Bike"}
+    assert list(result_instances["R2Element"]) == ["Car", "Bike"]
+
 
 def test_transform_relations_table_duplicate_names():
     """
-    Test whether duplicate R2Element are renamed to {Relation}_{R2Element}    
-    """    
-    
+    Test whether duplicate R2Element values (same name reused across
+    different Relations) are renamed to {Relation}_{R2Element}.
+    """
+    relations_df = make_relations_df([
+        {"Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
+         "R2Element": "Item", "R2ElementID": 100},
+        {"Relation": "Rents", "Cardinality": "1:N", "RelationID": 2,
+         "R2Element": "Item", "R2ElementID": 200},
+    ])
+    instances_df = make_instances_df([
+        {"R1Instance": "Alice", "R1InstanceID": 1, "RelationInstanceID": 1,
+         "R2Instance": "Chair", "R2InstanceID": 1000, "R2Element": "Item",
+         "R2ElementID": 100, "Cardinality": "1:N", "RelationID": 1,
+         "R1Element": "Person"},
+        {"R1Instance": "Bob", "R1InstanceID": 2, "RelationInstanceID": 2,
+         "R2Instance": "Table", "R2InstanceID": 2000, "R2Element": "Item",
+         "R2ElementID": 200, "Cardinality": "1:N", "RelationID": 2,
+         "R1Element": "Person"},
+    ])
+
+    result_relations, result_instances = transformer._transform_relations_table(relations_df, instances_df)
+
+    assert set(result_relations["R2Element"]) == {"Owns_Item", "Rents_Item"}
+    assert set(result_instances["R2Element"]) == {"Owns_Item", "Rents_Item"}
+
+
 def test_transform_relations_table_duplicate_name_and_relation():
     """
-    Test whether a error is raised when the Relations table contains a
-    duplicate R2Element and Relation combination
+    Test whether an error is raised when the Relations table contains a
+    duplicate R2Element and Relation combination.
     """
-    
+    relations_df = make_relations_df([
+        {"Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
+         "R2Element": "Item", "R2ElementID": 100},
+        {"Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
+         "R2Element": "Item", "R2ElementID": 101},
+    ])
+    instances_df = make_instances_df([])
+
+    with pytest.raises(RuntimeError):
+        transformer._transform_relations_table(relations_df, instances_df)
+
+
 def test_transform_relations_table_no_children():
     """
-    Test whether the output contains the same R2Elements as the input in 
-    case no children Elements are present
+    Test whether the output contains the same R2Elements as the input in
+    case no children Elements are present.
     """
-    
+    relations_df = make_relations_df([
+        {"Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
+         "R2Element": "Car", "R2ElementID": 100},
+    ])
+    instances_df = make_instances_df([
+        {"R1Instance": "Alice", "R1InstanceID": 1, "RelationInstanceID": 1,
+         "R2Instance": "Tesla", "R2InstanceID": 1000, "R2Element": "Car",
+         "R2ElementID": 100, "Cardinality": "1:N", "RelationID": 1,
+         "R1Element": "Person"},
+    ])
+
+    result_relations, result_instances = transformer._transform_relations_table(relations_df, instances_df)
+
+    assert result_relations.loc[0, "R2Element"] == "Car"
+    assert result_relations.loc[0, "R2ElementID"] == 100
+    assert result_instances.loc[0, "R2Element"] == "Car"
+    assert result_instances.loc[0, "R2ElementID"] == 100
+
+
 def test_tranform_relations_table_children():
     """
-    Test whether the output contains the Children R2Elements instead of the
-    R2Elements in case children Elements are present
+    Test whether the output contains the Children R2Elements instead of
+    the R2Elements in case children Elements are present.
     """
-    
+    relations_df = make_relations_df([
+        {"Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
+         "R2Element": "Vehicle", "R2ElementID": 100,
+         "ChildR2Element": "Car", "ChildR2ElementID": 101},
+    ])
+    # Note: instance rows key off the resolved (child) R2ElementID, since
+    # that's what relations_df ends up using after coalescing.
+    instances_df = make_instances_df([
+        {"R1Instance": "Alice", "R1InstanceID": 1, "RelationInstanceID": 1,
+         "R2Instance": "Tesla", "R2InstanceID": 1000, "R2Element": "Car",
+         "R2ElementID": 101, "Cardinality": "1:N", "RelationID": 1,
+         "R1Element": "Person"},
+    ])
+
+    result_relations, result_instances = transformer._transform_relations_table(relations_df, instances_df)
+
+    assert result_relations.loc[0, "R2Element"] == "Car"
+    assert result_relations.loc[0, "R2ElementID"] == 101
+    assert "Vehicle" not in result_relations["R2Element"].values
+    assert result_instances.loc[0, "R2Element"] == "Car"
 
