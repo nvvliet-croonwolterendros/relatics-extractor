@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Dict, Literal
+from typing import Dict, Literal, Tuple
 import unicodedata
 import re
 import logging
@@ -45,18 +45,79 @@ def create_element_tables(
 def _transform_relations_table(
     relations_df: pd.DataFrame,
     relations_instances_df: pd.DataFrame
-) -> pd.DataFrame: 
+) -> Tuple[pd.DataFrame, pd.DataFrame]: 
     """
-    In the Relations table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
-    Raise error if there are duplicate R2Element Relation combinations in the Relations table.
-    Using the Relations table create a rename-map duplicate R2Elements to {Relation}_{R2Element}.
-    Rename R2Elements in the RelationInstances table using the rename map.
+    In the Relations table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty. DONE
+    Raise error if there are duplicate R2Element Relation combinations in the Relations table. DONE
+    Using the Relations table create a rename-map duplicate R2Elements to {Relation}_{R2Element}. DONE
+    Rename R2Elements in the RelationInstances table using the rename map. DONE
     In the Relations table Renames R2Elements to make them SQL safe.
     
     Important: the R2Element should also be renamed when the R2Element = R1Element
 
     Rename mapping must be done in both relations_df and relation_instance_df
     """
+    relations_df = relations_df.copy()
+    relations_instances_df = relations_instances_df.copy()
+
+    # === Parse relations_df ===
+    # Coalesce ChildR2Element with R2Element
+    relations_df['R2Element'] = relations_df['ChildR2Element'].replace('', None).combine_first(relations_df['R2Element'])
+    relations_df['R2ElementID'] = relations_df['ChildR2ElementID'].replace('', None).combine_first(relations_df['R2ElementID'])
+    relations_df = relations_df.drop(['ChildR2Element', 'ChildR2ElementID'], axis=1)
+
+    # Check if Relation + R2element is always unique. If not, throw an error.
+    dup_check = relations_df.duplicated(subset=['Relation', 'R2Element'], keep=False)
+    if dup_check.any() == True:
+        logger.critical('Duplication was found for Relation + R2Element combination in relations_df.')
+        logger.debug(relations_df[dup_check].to_dict())
+        raise RuntimeError('relations_df cannot contain duplicated Relation + R2Element pairs.')
+
+    # Rename R2Element to Relation_R2Element if R2Elements are duplicates
+    mask_duplicated_R2Element = relations_df['R2Element'].duplicated(keep=False)
+    relations_df.loc[mask_duplicated_R2Element,'R2Element'] = relations_df.loc[mask_duplicated_R2Element,'Relation'] + '_' + relations_df.loc[mask_duplicated_R2Element,'R2Element']
+
+    # === Parse relations_instances_df ===
+    # No need to implement the rename logic again. The R2Element and relation name columns will be joined from relation_df to relation_instances_df
+    # The only check needed now is if R1Element == R2Element coming from relation_df. If the case the relation name will be added in front.
+    # Check again if the relationID + R2Element name are unique if not again throw an error.
+
+    relations_instances_df = relations_instances_df.merge(
+    relations_df[['RelationID', 'R2ElementID', 'Relation', 'R2Element']].rename(
+        columns={'R2Element': 'New_R2Element'}
+    ),
+    on=['RelationID', 'R2ElementID'],
+    how='left'
+    )
+
+    # Check for R1Element == R2Element
+    self_ref_mask = relations_instances_df['R1Element'] == relations_instances_df['New_R2Element']
+    relations_instances_df.loc[self_ref_mask, 'New_R2Element'] = (
+        relations_instances_df.loc[self_ref_mask, 'Relation'] + '_' + relations_instances_df.loc[self_ref_mask, 'New_R2Element']
+    )
+
+    # As only R1Element is present in the relation instances df, the relations table needs to be updated again after all this to include the R1Element == R2Element case.
+    renamed_self_refs = relations_instances_df.loc[self_ref_mask, ['RelationID', 'R2ElementID', 'New_R2Element']].drop_duplicates()
+    
+    relations_df = relations_df.merge(renamed_self_refs, on=['RelationID', 'R2ElementID'], how='left')
+    relations_df['R2Element'] = relations_df['New_R2Element'].combine_first(relations_df['R2Element'])
+    relations_df.drop(columns=['New_R2Element'], inplace=True)
+    
+    relations_instances_df['R2Element'] = relations_instances_df['New_R2Element']
+    relations_instances_df.drop(columns=['New_R2Element', 'Relation'], inplace=True)
+
+    # Check if duplicate names exist in relations_instance_df
+    dup_check = relations_instances_df.duplicated(subset=['RelationID', 'R2Element'], keep=False)
+    if dup_check.any() == True:
+        logger.critical('Duplication was found for RelationID + R2Element combination in relations_instances_df.')
+        logger.debug(relations_instances_df[dup_check].to_dict())
+        raise RuntimeError('relations_instances_df cannot contain duplicated RelationID + R2Element pairs.')
+
+    # If all of this passes now is the time to rename the R2Element columns to be sql safe
+    relations_instances_df['R2Element'] = relations_instances_df['R2Element'].apply(_normalize_value)
+    relations_df['R2Element'] = relations_df['R2Element'].apply(_normalize_value)
+
+    return relations_df, relations_instances_df
 
 def _create_property_table(
     properties_df: pd.DataFrame,
@@ -217,8 +278,13 @@ def _normalize_value(val: str, max_length: int = 63) -> str:
     Function that takes an input string and normalizes the data so it can safely be used in downstream applications.
     Returns: Sanatized string without any special characters.
     """
+    if pd.isna(val) or val is None:
+        return ""
+        
+    val = str(val)
     val = val.replace("&", "_en_").replace("€", "_euro_").replace("+", "_plus_")
-    # Normalize Unicode → ASCII (e.g. é → e)
+    
+    # Normalize Unicode -> ASCII (e.g. é -> e)
     val = unicodedata.normalize("NFKD", val)
     val = val.encode("ascii", "ignore").decode("ascii")
 
@@ -234,8 +300,11 @@ def _normalize_value(val: str, max_length: int = 63) -> str:
     # Strip leading/trailing underscores
     val = val.strip("_")
 
-    # Ensure it doesn't start with a digit
-    if not val or val[0].isdigit():
+    # Handle empty string or leading digit
+    if not val:
+        logger.debug("input value is empty returning empty string.")
+        return ""
+    if val[0].isdigit():
         val = f"no_num_{val}"
 
     # Trim to max length (Postgres default = 63)
