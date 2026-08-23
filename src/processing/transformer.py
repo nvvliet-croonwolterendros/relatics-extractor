@@ -47,7 +47,7 @@ def _transform_relations_table(
     relations_instances_df: pd.DataFrame
 ) -> pd.DataFrame: 
     """
-    In the RelationInstances table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
+    In the Relations table Coalesce R2ElementID, R2Element with ChildR2Element, ChildR2Elemnent when child columns are not empty.
     Raise error if there are duplicate R2Element Relation combinations in the Relations table.
     Using the Relations table create a rename-map duplicate R2Elements to {Relation}_{R2Element}.
     Rename R2Elements in the RelationInstances table using the rename map.

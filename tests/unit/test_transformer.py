@@ -501,8 +501,18 @@ def test_create_link_tables_incomplete_relation_instances():
     
 def test_transform_relations_table_returns_sql_safe_only():
     """
-    Test whether all R2Element names returned are sql safe
+    Test whether all R2Element names returned are sql safe.
     """
+    import re
+    relations_df = pd.DataFrame()
+    relations_instances_df = pd.DataFrame()
+
+    pattern = r"^[a-zA-Z_][a-zA-Z0-9_]{0,127}$"
+    relations_df_safe = relations_df["my_column"].str.match(pattern).all()
+
+    assert relations_df_safe == True
+
+
 
 def test_transform_relations_table_no_duplicate_names():
     """
