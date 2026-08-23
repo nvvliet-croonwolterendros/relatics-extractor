@@ -77,6 +77,12 @@ def _transform_relations_table(
     mask_duplicated_R2Element = relations_df['R2Element'].duplicated(keep=False)
     relations_df.loc[mask_duplicated_R2Element,'R2Element'] = relations_df.loc[mask_duplicated_R2Element,'Relation'] + '_' + relations_df.loc[mask_duplicated_R2Element,'R2Element']
 
+    mask_duplicated_R2Element_after_rename = relations_df['R2Element'].duplicated(keep=False)
+    if mask_duplicated_R2Element_after_rename.any():
+        logger.critical('Renaming duplicate R2Elements to Relation_R2Element produced new duplicate R2Element values in relations_df.')
+        logger.debug(relations_df[mask_duplicated_R2Element_after_rename].to_dict())
+        raise RuntimeError('relations_df cannot contain duplicated R2Element values after Relation_R2Element renaming.')
+
     # === Parse relations_instances_df ===
     # No need to implement the rename logic again. The R2Element and relation name columns will be joined from relation_df to relation_instances_df
     # The only check needed now is if R1Element == R2Element coming from relation_df. If the case the relation name will be added in front.
@@ -90,6 +96,12 @@ def _transform_relations_table(
     how='left'
     )
 
+    unmatched_mask = relations_instances_df['New_R2Element'].isna()
+    if unmatched_mask.any():
+        logger.critical('relations_instances_df contains RelationID + R2ElementID combinations with no match in relations_df.')
+        logger.debug(relations_instances_df[unmatched_mask].to_dict())
+        raise RuntimeError('relations_instances_df contains RelationID + R2ElementID combinations with no match in relations_df.')
+
     # Check for R1Element == R2Element
     self_ref_mask = relations_instances_df['R1Element'] == relations_instances_df['New_R2Element']
     relations_instances_df.loc[self_ref_mask, 'New_R2Element'] = (
@@ -98,13 +110,29 @@ def _transform_relations_table(
 
     # As only R1Element is present in the relation instances df, the relations table needs to be updated again after all this to include the R1Element == R2Element case.
     renamed_self_refs = relations_instances_df.loc[self_ref_mask, ['RelationID', 'R2ElementID', 'New_R2Element']].drop_duplicates()
-    
+
+    inconsistent_self_ref_mask = renamed_self_refs.duplicated(subset=['RelationID', 'R2ElementID'], keep=False)
+    if inconsistent_self_ref_mask.any():
+        logger.critical('Self-reference renaming produced multiple different R2Element names for the same RelationID + R2ElementID combination.')
+        logger.debug(renamed_self_refs[inconsistent_self_ref_mask].to_dict())
+        raise RuntimeError('Self-reference renaming is inconsistent for at least one RelationID + R2ElementID combination.')
+
+    relations_df_row_count_before_self_ref_merge = len(relations_df)
     relations_df = relations_df.merge(renamed_self_refs, on=['RelationID', 'R2ElementID'], how='left')
+    if len(relations_df) != relations_df_row_count_before_self_ref_merge:
+        logger.critical('Merging self-reference renames into relations_df changed the number of rows.')
+        raise RuntimeError('Merging self-reference renames into relations_df changed the number of rows.')
     relations_df['R2Element'] = relations_df['New_R2Element'].combine_first(relations_df['R2Element'])
     relations_df.drop(columns=['New_R2Element'], inplace=True)
     
     relations_instances_df['R2Element'] = relations_instances_df['New_R2Element']
     relations_instances_df.drop(columns=['New_R2Element', 'Relation'], inplace=True)
+
+    dup_check = relations_df.duplicated(subset=['Relation', 'R2Element'], keep=False)
+    if dup_check.any() == True:
+        logger.critical('Duplication was found for Relation + R2Element combination in relations_df after self-reference renaming.')
+        logger.debug(relations_df[dup_check].to_dict())
+        raise RuntimeError('relations_df cannot contain duplicated Relation + R2Element pairs after self-reference renaming.')
 
     # Check if duplicate names exist in relations_instance_df
     dup_check = relations_instances_df.duplicated(subset=['RelationID', 'R2Element'], keep=False)
@@ -119,6 +147,8 @@ def _transform_relations_table(
 
     return relations_df, relations_instances_df
 
+
+# TODO: make sure no more changes are made to relations_df and relation_instanced df after this. Also verify the tests.
 def _create_property_table(
     properties_df: pd.DataFrame,
     property_instances_df: pd.DataFrame
