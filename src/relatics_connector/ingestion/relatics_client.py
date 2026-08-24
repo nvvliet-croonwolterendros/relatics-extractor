@@ -1,6 +1,9 @@
 import requests
 import xml.etree.ElementTree as ET
 from typing import Dict, Tuple
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TokenRequestError(Exception):
     """Raised when token retrieval fails."""

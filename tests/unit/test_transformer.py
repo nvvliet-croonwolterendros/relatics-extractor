@@ -1,7 +1,7 @@
 import pytest
 import logging
 import pandas as pd
-from src.processing import transformer
+from relatics_connector.processing import transformer
 
 @pytest.fixture
 def property_instances():
@@ -505,7 +505,7 @@ def test_transform_relations_table_returns_sql_safe_only():
     """
     pass
 
-MODULE_PATH = "src.processing.transformer"  # used below for monkeypatching _normalize_value
+MODULE_PATH = "relatics_connector.processing.transformer"  # used below for monkeypatching _normalize_value
 
 
 @pytest.fixture(autouse=True)
