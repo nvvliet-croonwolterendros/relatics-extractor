@@ -2,7 +2,7 @@ import pandas as pd
 import logging
 from typing import Dict
 
-from src.processing.schema import SCHEMA
+from relatics_connector.processing.schema import SCHEMA
 
 logger = logging.getLogger(__name__)
 
