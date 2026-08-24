@@ -29,7 +29,8 @@ def create_element_tables(
     tables: Dict[str, pd.DataFrame],
     column_map: Dict[str,str] = COLUMN_MAP 
 ) -> Dict[str, pd.DataFrame]:
-    """
+    """Main function to create element and link tables.
+    
     Takes the 6 input tables for a given element.
     Transform the reltions table. 
     Create the property_table, property_elements_table and to_one_relations_table.
@@ -37,13 +38,15 @@ def create_element_tables(
     Merge property_table, property_elements_table and to_one_relations_table on element_instances_df on R1InstanceID as index.
     Rename columns of the element table using the COLUMN_MAP.
     Create the link tables.
-    Returns the element table and required link tables for the element.
+    
+    Returns:
+        Dict: the element table and required link tables for the element.
     """
-    element_instances_df = tables["element_instances"].copy()
-    properties_df = tables["properties"].copy()
-    property_instances_df = tables["property_instances"].copy()
-    relations_df = tables["relations"].copy()
-    relations_instances_df = tables["relation_instances"].copy()
+    element_instances_df = tables["ElementInstances"].copy()
+    properties_df = tables["Properties"].copy()
+    property_instances_df = tables["PropertyInstances"].copy()
+    relations_df = tables["Relations"].copy()
+    relations_instances_df = tables["RelationInstances"].copy()
 
     # --- Determine the R1Element name for this batch of tables ---
     # ASSUMPTION: relations_instances_df carries a constant 'R1Element' column
@@ -123,7 +126,7 @@ def _transform_relations_table(
 
     # Rename R2Element to Relation_R2Element if R2Elements are duplicates
     mask_duplicated_R2Element = relations_df['R2Element'].duplicated(keep=False)
-    relations_df.loc[mask_duplicated_R2Element,'R2Element'] = relations_df.loc[mask_duplicated_R2Element,'Relation'] + '_' + relations_df.loc[mask_duplicated_R2Element,'R2Element']
+    relations_df.loc[mask_duplicated_R2Element,'R2Element'] = relations_df.loc[mask_duplicated_R2Element, 'Relation'].astype(str) + '_' + relations_df.loc[mask_duplicated_R2Element, 'R2Element'].astype(str)
 
     mask_duplicated_R2Element_after_rename = relations_df['R2Element'].duplicated(keep=False)
     if mask_duplicated_R2Element_after_rename.any():
@@ -153,7 +156,7 @@ def _transform_relations_table(
     # Check for R1Element == R2Element
     self_ref_mask = relations_instances_df['R1Element'] == relations_instances_df['New_R2Element']
     relations_instances_df.loc[self_ref_mask, 'New_R2Element'] = (
-        relations_instances_df.loc[self_ref_mask, 'Relation'] + '_' + relations_instances_df.loc[self_ref_mask, 'New_R2Element']
+        relations_instances_df.loc[self_ref_mask, 'Relation'].astype(str) + '_' + relations_instances_df.loc[self_ref_mask, 'New_R2Element'].astype(str)
     )
 
     # As only R1Element is present in the relation instances df, the relations table needs to be updated again after all this to include the R1Element == R2Element case.
