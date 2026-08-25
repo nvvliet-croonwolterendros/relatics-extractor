@@ -70,6 +70,7 @@ class Extractor():
                 futures = [
                     executor.submit(self.process_element,
                                     elementid=row["ElementID"],
+                                    elementname=row['Element'],
                                     client=self.client,
                                     workspaceid=workspace_id,
                                     schema=SCHEMA,
@@ -125,14 +126,16 @@ class Extractor():
                     logger.info(f"\n==========================================\n Start processing element: {row['Element']}")
                     element_tables_result = self.process_element(
                         elementid=row["ElementID"],
+                        elementname=row['Element'],
                         client=self.client,
                         workspaceid=workspace_id,
                         schema=SCHEMA,
                         datamodel_operation=datamodel_operation
                     )
                 except Exception:
-                    logger.exception("Failed to process element")
-                    raise
+                    logger.exception(f"Failed to process element: {row['Element']}. skipping.")
+                    # continue
+                    raise # Normally this is a raise just for now lets keep going and just continue
 
                 for table_name, df in element_tables_result.items():
                     if table_name in tables:
@@ -143,7 +146,7 @@ class Extractor():
         return tables
 
     @staticmethod
-    def process_element(elementid: str, client: RelaticsClient, workspaceid: str, datamodel_operation: str, schema: Dict[str, Dict]=SCHEMA,
+    def process_element(elementid: str, elementname:str, client: RelaticsClient, workspaceid: str, datamodel_operation: str, schema: Dict[str, Dict]=SCHEMA,
                         report_parts: Tuple = ('ElementInstances', 'Properties', 'PropertyInstances', 'Relations', 'RelationInstances')):
         """Processes a Relatics element with its first order relations and properties.
 
@@ -177,7 +180,7 @@ class Extractor():
 
         # Transform the dict of raw dataframes to a dict of transformed dataframes, keys will be sanatized sql table names with their corresponding df as value.
         # Also add the current workspaceid as a column.
-        transformed_tables = create_element_tables(tables=normalized_tables)
+        transformed_tables = create_element_tables(tables=normalized_tables, r1_element=elementname)
         for table in transformed_tables.values():
             table['workspaceid'] = workspaceid
 
