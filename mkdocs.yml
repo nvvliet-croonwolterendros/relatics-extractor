@@ -2,6 +2,11 @@ site_name: My Codebase Docs
 theme:
   name: material
 
+markdown_extensions:
+  - admonition
+  # - pymdownx.details
+  # - pymdownx.superfences
+
 plugins:
   - search
   - mkdocstrings:
@@ -13,5 +18,9 @@ plugins:
 
 nav:
   - Home: index.md
-  - Relatics Client: client.md
+  - Getting Started:
+    - Introduction: getting_started/index.md
+    - Setting up Relatics: getting_started/settinguprelatics.md
   - Relatics Connector: extraction_service.md
+  - Relatics Client: client.md
+  - XML parser: xmlparser.md
