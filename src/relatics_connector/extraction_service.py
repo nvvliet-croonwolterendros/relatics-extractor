@@ -38,7 +38,7 @@ class Extractor():
                                 client_secret=self.clientsecret,
                                 environment=self.environment)
 
-    def run_etl(self, workspaces: Tuple[str, ...], element_operation: str, datamodel_operation: str, element_report_part: str = "Elements") -> Dict[str, pd.DataFrame]:
+    def run_etl_fast(self, workspaces: Tuple[str, ...], element_operation: str, datamodel_operation: str, element_report_part: str = "Elements") -> Dict[str, pd.DataFrame]:
         """Main entrypoint for ETL process.
 
         Executes the ETL process in the right order for a list of workspaces.
@@ -83,7 +83,8 @@ class Extractor():
                         element_tables_result = future.result()
                     except Exception:
                         logger.exception("Failed to process element")
-                        raise
+                        continue
+                        # raise
 
                     for table_name, df in element_tables_result.items():
                         if table_name in tables:
@@ -112,6 +113,7 @@ class Extractor():
         """
 
         tables = {}
+        self.failed_elements = []
 
         for workspace_id in workspaces:
             logger.info(f"Start processing workspaceID: {workspace_id}")
@@ -134,15 +136,17 @@ class Extractor():
                     )
                 except Exception:
                     logger.exception(f"Failed to process element: {row['Element']}. skipping.")
-                    # continue
-                    raise # Normally this is a raise just for now lets keep going and just continue
+                    self.failed_elements.append(row['Element'])
+                    continue
+                    # raise # Normally this is a raise just for now lets keep going and just continue
 
                 for table_name, df in element_tables_result.items():
                     if table_name in tables:
                         tables[table_name] = pd.concat([tables[table_name], df], ignore_index=True)
                     else:
                         tables[table_name] = df
-
+        if self.failed_elements:
+            logger.error(f'There are {len(self.failed_elements)} failed elements namely: {self.failed_elements}')
         return tables
 
     @staticmethod
