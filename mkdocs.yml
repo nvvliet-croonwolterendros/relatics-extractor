@@ -1,0 +1,17 @@
+site_name: My Codebase Docs
+theme:
+  name: material
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+
+nav:
+  - Home: index.md
+  - Relatics Client: client.md
+  - Relatics Connector: extraction_service.md
