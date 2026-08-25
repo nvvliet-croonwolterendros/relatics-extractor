@@ -20,16 +20,8 @@ class Extractor():
         client_id: The Client ID from Relatics' OAUTH implementation.
         client_secret: The Client secret from Relatics' OAUTH implementation.
         environment: the environment where the relatics workspaces are hosted -> environment.relaticsonline.com
-        workspaces: A list of workspace id's to iterate over.
     """
     def __init__(self, client_id: str, client_secret: str, environment: str) -> None:
-        """Constructor for the Extractor class. Initializes the requried data for use.
-
-        Args:
-            client_id: The Client ID from Relatics' OAUTH implementation.
-            client_secret: The Client secret from Relatics' OAUTH implementation.
-            environment: the environment where the relatics workspaces are hosted -> environment.relaticsonline.com
-        """
         self.clientid = client_id
         self.clientsecret = client_secret
         self.environment = environment
@@ -42,6 +34,7 @@ class Extractor():
         """Main entrypoint for ETL process.
 
         Executes the ETL process in the right order for a list of workspaces.
+        Uses multithreading to speed up the process.
         The ETL process wil first validate the input data to match a predefined schema, if columns are missing, they are silently added.
         After the validation is done, the data is transformed so that each element will get its :1 relation in the element table and :n relation in a link table.
         The workspaceID is added to each table, and after the transformation is completed a final dict is made if a table is present the workspace data is appended otherwise a new key is made with a pd.DataFrame as value.
@@ -53,7 +46,7 @@ class Extractor():
             element_report_part (str): The Report part containing the Elements with ConfigurationOfRef. The default should be good if the documentation is followed. Default: 'Element'
 
         Returns:
-            Dict[str, pd.DataFrame]: A dictionary with table names as keys and the corresponding pd.DataFrame as value.
+            tables: A dictionary with table names as keys and the corresponding pd.DataFrame as value.
         """
 
         tables = {}
@@ -151,7 +144,7 @@ class Extractor():
 
     @staticmethod
     def process_element(elementid: str, elementname:str, client: RelaticsClient, workspaceid: str, datamodel_operation: str, schema: Dict[str, Dict]=SCHEMA,
-                        report_parts: Tuple = ('ElementInstances', 'Properties', 'PropertyInstances', 'Relations', 'RelationInstances')):
+                        report_parts: Tuple = ('ElementInstances', 'Properties', 'PropertyInstances', 'Relations', 'RelationInstances')) -> Dict[str, pd.DataFrame]:
         """Processes a Relatics element with its first order relations and properties.
 
         This function takes the ConfigurationOfRef of an element and does a relatics API call to retrieve all the element information, 
@@ -167,7 +160,7 @@ class Extractor():
             report_parts (Tuple): A tuple of the report parts required for transformation. Tuple is mainly present for documentation purposes as the create_element_tables function requries these names.
 
         Returns:
-            Dict[str, pd.DataFrame]: A Dictionary with pandas dataframes as values. The keys are raw_relatics__{R1Element}_{R2Element} for link tables and raw_relatics__{R1Element} for element tables.
+            transformed_tables: A Dictionary with pandas dataframes as values. The keys are raw_relatics__{R1Element}_{R2Element} for link tables and raw_relatics__{R1Element} for element tables.
         """
         logger.info(f"Start processing Element {elementid}")
 

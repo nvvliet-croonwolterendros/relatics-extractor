@@ -4,7 +4,7 @@ The `Extractor` class orchestrates the extraction, parsing, schema validation, a
 
 ## Overview
 
-::: relatics_connector.extraction_service.Extractor
+::: relatics_connector.Extractor
     options:
       show_root_heading: true
       show_source: true
@@ -14,4 +14,4 @@ The `Extractor` class orchestrates the extraction, parsing, schema validation, a
         - run_etl_fast
         - run_etl_slow
         - process_element
-      merge_init_into_class: false
+      merge_init_into_class: true

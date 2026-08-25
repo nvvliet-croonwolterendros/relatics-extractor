@@ -4,11 +4,12 @@ Overview of the `RelaticsClient` class and associated custom exceptions for inte
 
 ## Client
 
-::: relatics_connector.ingestion.relatics_client.RelaticsClient
+::: relatics_connector.RelaticsClient
     options:
       show_root_heading: true
       show_source: true
       heading_level: 3
+      merge_init_into_class: true
 
 ## Exceptions
 
