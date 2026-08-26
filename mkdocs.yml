@@ -1,4 +1,5 @@
-site_name: My Codebase Docs
+site_name: Relatics Connector Documentation
+site_url: https://nvvliet.nl/docs
 theme:
   name: material
 
@@ -20,6 +21,7 @@ nav:
   - Home: index.md
   - Getting Started:
     - Introduction: getting_started/index.md
+    - Installation: getting_started/installation.md
     - Setting up Relatics: getting_started/settinguprelatics.md
   - Relatics Connector: extraction_service.md
   - Relatics Client: client.md
