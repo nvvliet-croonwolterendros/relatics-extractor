@@ -527,7 +527,7 @@ def make_relations_df(rows):
     defaults = {"ChildR2Element": "", "ChildR2ElementID": ""}
     full_rows = [{**defaults, **row} for row in rows]
     return pd.DataFrame(full_rows, columns=[
-        "Relation", "Cardinality", "RelationID", "R2Element",
+        "R1Element", "Relation", "Cardinality", "RelationID", "R2Element",
         "R2ElementID", "ChildR2Element", "ChildR2ElementID",
     ])
 
@@ -549,9 +549,9 @@ def test_transform_relations_table_no_duplicate_names():
     duplicate R2Element values and no self-referencing relations.
     """
     relations_df = make_relations_df([
-        {"Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
+        {"R1Element": "Person", "Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
          "R2Element": "Car", "R2ElementID": 100},
-        {"Relation": "Drives", "Cardinality": "1:1", "RelationID": 2,
+        {"R1Element": "Person", "Relation": "Drives", "Cardinality": "1:1", "RelationID": 2,
          "R2Element": "Bike", "R2ElementID": 200},
     ])
     instances_df = make_instances_df([
@@ -666,3 +666,23 @@ def test_tranform_relations_table_children():
     assert "Vehicle" not in result_relations["R2Element"].values
     assert result_instances.loc[0, "R2Element"] == "Car"
 
+def test_transform_relations_table_self_ref():
+    """
+    Test whether self referencing relations (i.e. R1Element = R2Elemnt)
+    are renamed to {Relation}_{R2Element}.
+    """
+    relations_df = make_relations_df([
+        {"R1Element": "Person", "Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
+            "R2Element": "Person", "R2ElementID": 100}
+    ])
+    instances_df = make_instances_df([
+        {"R1Instance": "Alice", "R1InstanceID": 1, "RelationInstanceID": 1,
+            "R2Instance": "Chair", "R2InstanceID": 1000, "R2Element": "Person",
+            "R2ElementID": 100, "Cardinality": "1:N", "RelationID": 1,
+            "R1Element": "Person"}
+    ])
+
+    result_relations, result_instances = transformer._transform_relations_table(relations_df, instances_df)
+
+    assert set(result_relations["R2Element"]) == {"Owns_Person"}
+    assert set(result_instances["R2Element"]) == {"Owns_Person"}
