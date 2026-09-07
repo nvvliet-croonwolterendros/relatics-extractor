@@ -242,9 +242,9 @@ def _create_to_one_relations_table(
     relations_instances_one_df = relations_instances_df[relations_instances_df[RELATIONID_COL].isin(relations_one_df[RELATIONID_COL])].copy()
 
     # create list with all to one relations
-    relations_one_list = [f"{_normalize_value(v)}_guid" for v in relations_one_df[R2ELEMENT_COL]]
+    relations_one_list = [f"{v}_guid" for v in relations_one_df[R2ELEMENT_COL]]
 
-    # add _guid suffix to all R2Elements
+    # add _guid suffix to all R2Elements in the instances df
     relations_instances_one_df[R2ELEMENT_COL] = relations_instances_one_df[R2ELEMENT_COL] + "_guid" 
     
     # pivot table so R2Element are on the column axis
