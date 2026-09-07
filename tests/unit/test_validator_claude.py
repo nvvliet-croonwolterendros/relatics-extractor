@@ -3,8 +3,8 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 import textwrap
 
-from relatics_connector.processing.validator import normalize_tables, is_valid_schema
-from relatics_connector.processing.transformer import _transform_relations_table
+from relatics_extractor.processing.validator import normalize_tables, is_valid_schema
+from relatics_extractor.processing.transformer import _transform_relations_table
 
 
 # ---------------------------------------------------------------------------
@@ -302,7 +302,7 @@ def test_is_valid_schema_missing_columns_preserve_schema_order():
     message = str(exc_info.value)
     assert message.index("zeta") < message.index("alpha")
 
-MODULE_PATH = "relatics_connector.processing.transformer"
+MODULE_PATH = "relatics_extractor.processing.transformer"
 
 @pytest.fixture(autouse=True)
 def _identity_normalize(monkeypatch):
