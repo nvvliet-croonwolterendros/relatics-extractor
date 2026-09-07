@@ -1,7 +1,7 @@
 import pytest
 import requests
 import xml.etree.ElementTree as ET
-from relatics_connector.ingestion.relatics_client import RelaticsClient, TokenRequestError
+from relatics_extractor.ingestion.relatics_client import RelaticsClient, TokenRequestError
 
 @pytest.fixture
 def client():
@@ -31,7 +31,7 @@ def test_get_token_success(client, mocker):
     }
 
     # Target the full import path where requests is used
-    mocker.patch("relatics_connector.ingestion.relatics_client.requests.post", return_value=mock_res)
+    mocker.patch("relatics_extractor.ingestion.relatics_client.requests.post", return_value=mock_res)
 
     token, token_type = client._get_token()
 
@@ -46,7 +46,7 @@ def test_get_token_400(client, mocker):
     mock_res.status_code = 400
     mock_res.text = '{"error": "invalid_client", "error_description": "Client credentials could not be retrieved through the Authorization header."}'
     
-    mocker.patch("relatics_connector.ingestion.relatics_client.requests.post", return_value=mock_res)
+    mocker.patch("relatics_extractor.ingestion.relatics_client.requests.post", return_value=mock_res)
 
     with pytest.raises(TokenRequestError) as exc_info:
         client._get_token()
@@ -64,7 +64,7 @@ def test_get_token_changed(client, mocker):
         "token_type": "Bearer"
     }
     
-    mocker.patch("relatics_connector.ingestion.relatics_client.requests.post", return_value=mock_res)
+    mocker.patch("relatics_extractor.ingestion.relatics_client.requests.post", return_value=mock_res)
 
     with pytest.raises(TokenRequestError) as exc_info:
         client._get_token()
@@ -80,7 +80,7 @@ def test_parse_xml_success(client, relatics_api_response, mocker):
     mock_res.status_code = 200
     mock_res.content = relatics_api_response
 
-    mocker.patch("relatics_connector.ingestion.relatics_client.requests.get", return_value=mock_res)
+    mocker.patch("relatics_extractor.ingestion.relatics_client.requests.get", return_value=mock_res)
     xml = client.get_request("workspaceid", "operation")
 
     assert "Report" in xml.tag
