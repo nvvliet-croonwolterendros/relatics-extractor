@@ -1,6 +1,6 @@
 import json
 import pytest
-from relatics_connector import RelaticsClient
+from relatics_extractor import RelaticsClient
 
 def test_api_call():
     with open("configuration.json") as f:
