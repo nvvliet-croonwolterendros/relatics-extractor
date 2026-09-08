@@ -24,4 +24,5 @@ jobs:
 
       - name: Deploy docs to Pages
         run: mkdocs gh-deploy --force
-        env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
