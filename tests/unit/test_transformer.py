@@ -68,7 +68,7 @@ def test_create_property_table_no_properties(caplog):
     assert transformed_table.index.shape[0] == 0
     assert transformed_table.index.name == 'R1InstanceID'
     assert "No properties found in properties report part." in caplog.text
-    assert "No property instanes found in property instances report part." in caplog.text
+    assert "No property instances found in property instances report part." in caplog.text
 
 def test_create_property_table_no_propertyinstances(caplog):
     """
@@ -83,7 +83,7 @@ def test_create_property_table_no_propertyinstances(caplog):
     assert transformed_table.index.shape[0] == 0
     assert transformed_table.index.name == 'R1InstanceID'
     assert set(transformed_table.columns.tolist()) == set(['ID'])
-    assert "No property instanes found in property instances report part." in caplog.text
+    assert "No property instances found in property instances report part." in caplog.text
 
 def test_create_property_table_pivot_fails(caplog):
     """
@@ -94,7 +94,8 @@ def test_create_property_table_pivot_fails(caplog):
 
     with pytest.raises(ValueError):
         transformer._create_property_table(properties_df=properties, property_instances_df=propertyelements)
-    assert "Failed to pivot table, likely due to duplicates property names." in caplog.text
+    assert "Failed to pivot property instances. " in caplog.text
+    assert "Normalization may have created duplicate property names." in caplog.text
 
 def test_create_property_table_drops_undeclared_properties():
     properties = pd.DataFrame({'Property': ["ID"], 'PropertyID': ["1"]})
