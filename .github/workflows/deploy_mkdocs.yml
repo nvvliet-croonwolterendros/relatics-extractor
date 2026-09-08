@@ -4,6 +4,9 @@ on:
     branches:
       - dev-preprelease
 
+permissions:
+  contents: write
+
 jobs:
   deploy:
     name: Deploy mkdocs
