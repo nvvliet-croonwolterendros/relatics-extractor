@@ -1,6 +1,6 @@
 [project]
 name = "relatics-extractor"
-version = "0.2.0"
+version = "0.2.1"
 description = "A package that enables fast and easy ETL processing of a Relatics workspace."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -30,6 +30,12 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.format]
 quote-style = "double"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13"]

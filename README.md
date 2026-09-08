@@ -1,72 +1,81 @@
-# Relatics Connector
+# Relatics Extractor
 
-This is a connector for extracting and ingesting data from Relatics. The connector uses the python to interface with the Relatics API and transform the data into a format suitable for data warehouses.
+A Python package for extracting, parsing, and transforming data from Relatics (a requirements management tool) into database-ready pandas DataFrames.
 
-## Features
+## Overview
 
-- Authentication via OAuth 2.0 token-based authentication
-- Data extraction from Relatics API once per process with caching
-- Dynamic table schema generation based on actual Relatics data structure
-- In-memory processing using pandas DataFrames
-- Standalone execution mode
+The Relatics Extractor is designed to streamline the process of extracting data from Relatics API endpoints and converting it into structured, normalized tables suitable for database storage. It handles complex relationships between entities, nested XML structures, and provides robust error handling throughout the extraction pipeline.
 
-## Prerequisites
+## Key Features
 
-- Python 3.14 or higher
-- Relatics API credentials (client_id, client_secret, environment)
+- **Authentication**: Implements OAuth 2.0 token-based authentication with Relatics API
+- **Data Extraction**: Handles API calls to retrieve elements and their relationships
+- **XML Parsing**: Parses deeply nested XML structures into pandas DataFrames
+- **Schema Validation**: Validates data against predefined schemas and normalizes tables
+- **Relationship Management**: Properly handles different relationship cardinalities:
+  - :1 (one-to-one) relations are embedded in element tables  
+  - :n (many-to-one) relations become link tables
+- **Multithreading Support**: Uses ThreadPoolExecutor for faster processing of multiple elements
+- **Error Handling**: Robust error handling with logging and failure tracking
 
-## Setup
+## Installation
 
-1. Create a `configuration.json` file with your Relatics API credentials:
-   ```json
-   {
-     "client_id": "YOUR_CLIENT_ID",
-     "client_secret": "YOUR_CLIENT_SECRET",
-     "environment": "YOUR_ENVIRONMENT"
-   }
-   ```
+```bash
+# Install from source
+pip install .
 
-2. Install dependencies:
-   ```
-   pip install -e .
-   ```
+# Or install in development mode
+pip install -e .
+```
 
 ## Usage
 
-### Standalone Execution
-```bash
-python main.py
+### Basic Setup
+
+```python
+from relatics_extractor import Extractor
+
+# Initialize the extractor with your credentials
+extractor = Extractor(
+    client_id="your_client_id",
+    client_secret="your_client_secret", 
+    environment="your_environment"
+)
 ```
 
-This will extract data from Relatics and store it in a local SQLite database at `data/relatics.sqlite`.
+### Running ETL Pipeline
 
-## Testing
+```python
+# Run the extraction process for multiple workspaces
+tables = extractor.run_etl_fast(
+    workspaces=["workspace1", "workspace2"],
+    element_operation="GetElements",
+    datamodel_operation="GetDatamodel"
+)
 
-Run unit tests with pytest:
-```bash
-pytest tests/
+# Access extracted tables
+for table_name, df in tables.items():
+    print(f"Table: {table_name}")
+    print(df.head())
 ```
-
-Tests use pytest-mock to mock external API calls and prevent network dependencies during testing.
 
 ## Architecture
 
-- Authentication uses OAuth 2.0 token-based authentication with Relatics API
-- Data is extracted once per process and cached to avoid multiple API calls
-- Tables are dynamically generated based on actual Relatics data structure  
-- Schema is inferred from data frames during sync operations
-- All processing happens in memory using pandas DataFrames
+The extractor follows a clear pipeline architecture:
 
-## Configuration
+1. **Extraction**: Uses `RelaticsClient` to fetch data from API endpoints
+2. **Parsing**: Parses XML responses using `parse_xml` function  
+3. **Validation**: Validates schemas using `validator.py`
+4. **Transformation**: Transforms data using `transformer.py` to normalize relationships
 
-The connector requires a `configuration.json` file with:
-- `client_id`: Relatics client ID
-- `client_secret`: Relatics client secret  
-- `environment`: Relatics environment (e.g., "cwd")
+## Key Components
 
-## Repository Structure
+- **Extractor**: Main class that orchestrates the full ETL pipeline
+- **RelaticsClient**: Handles OAuth 2.0 authentication and API requests  
+- **parse_xml**: Parses deeply nested XML structures
+- **transformer**: Transforms raw data into structured tables with proper relationship handling
+- **validator**: Validates schema compliance and normalizes table structures
 
-- `main.py`: Standalone execution entry point
-- `configuration.json`: Client credentials
-- `src/`: Source code directory with extraction logic
-- `tests/`: Unit and integration tests with fixtures
+## License
+
+MIT
