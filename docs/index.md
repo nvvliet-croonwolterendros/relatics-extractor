@@ -25,7 +25,7 @@ The connector supports two main use cases:
 For extracting specific report parts, you can use the `parse_xml` function along with the RelaticsClient to retrieve and parse XML data.
 
 ```python
-from relatics_connector import RelaticsClient, parse_xml
+from relatics_extractor import RelaticsClient, parse_xml
 
 # Retrieve XML from relatics webservice
 client = RelaticsClient(client_id, client_secret, environment)

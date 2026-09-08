@@ -1,5 +1,4 @@
 site_name: Relatics Connector Documentation
-site_url: https://nvvliet.nl/docs
 theme:
   name: material
 

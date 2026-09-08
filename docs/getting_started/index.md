@@ -15,7 +15,7 @@ This package supports two main use cases:
 In order to do single report part extraction and transformation using this package the following code can be used:
 
 ```python
-from relatics_connector import RelaticsClient, parse_xml
+from relatics_extractor import RelaticsClient, parse_xml
 
 # Retrieve XML from relatics webservice
 client = RelaticsClient(client_id, client_secret, environment)
@@ -43,4 +43,4 @@ If a **requirement** element has a :n relation with the **Issue** element. The l
 
 If multiple workspaces are provided the Extractor will loop over each workspace and try to append to a Dataframe in the dictionary if it exists. If the tablename doesnt exist yet a key will be added to the dictionary.
 
-For a more detailed explanation follow the next pages in this getting started.
+For a more detailed explanation follow the next pages in this getting started!

@@ -4,7 +4,7 @@ The `Extractor` class orchestrates the extraction, parsing, schema validation, a
 
 ## Overview
 
-::: relatics_connector.Extractor
+::: relatics_extractor.Extractor
     options:
       show_root_heading: true
       show_source: true
