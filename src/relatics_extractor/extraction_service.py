@@ -2,11 +2,11 @@ from typing import Dict, Tuple
 import logging
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from relatics_connector.ingestion.relatics_client import RelaticsClient
-from relatics_connector.ingestion.xml_parser import parse_xml
-from relatics_connector.processing.validator import normalize_tables, is_valid_schema
-from relatics_connector.processing.schema import SCHEMA
-from relatics_connector.processing.transformer import create_element_tables
+from relatics_extractor.ingestion.relatics_client import RelaticsClient
+from relatics_extractor.ingestion.xml_parser import parse_xml
+from relatics_extractor.processing.validator import normalize_tables, is_valid_schema
+from relatics_extractor.processing.schema import SCHEMA
+from relatics_extractor.processing.transformer import create_element_tables
 
 logger = logging.getLogger(__name__)
 
