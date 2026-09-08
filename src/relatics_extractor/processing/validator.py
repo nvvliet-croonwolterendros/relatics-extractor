@@ -2,13 +2,11 @@ import pandas as pd
 import logging
 from typing import Dict
 
-from src.processing.schema import SCHEMA
-
 logger = logging.getLogger(__name__)
 
 def normalize_tables(
     tables: Dict[str, pd.DataFrame],
-    schema: Dict[str, dict] = SCHEMA
+    schema: Dict[str, dict]
 ) -> Dict[str, pd.DataFrame]:
     """ 
     Function that takes a dict of tables and adds to each 

@@ -4,7 +4,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 import textwrap
 
-from src.processing.validator import normalize_tables, is_valid_schema
+from relatics_extractor.processing.validator import normalize_tables, is_valid_schema
 
 @pytest.fixture
 def tables_fixture():

@@ -1,7 +1,7 @@
 import pytest
 import logging
 import pandas as pd
-from src.processing import transformer
+from relatics_extractor.processing import transformer
 
 @pytest.fixture
 def property_instances():
@@ -68,7 +68,7 @@ def test_create_property_table_no_properties(caplog):
     assert transformed_table.index.shape[0] == 0
     assert transformed_table.index.name == 'R1InstanceID'
     assert "No properties found in properties report part." in caplog.text
-    assert "No property instanes found in property instances report part." in caplog.text
+    assert "No property instances found in property instances report part." in caplog.text
 
 def test_create_property_table_no_propertyinstances(caplog):
     """
@@ -83,7 +83,7 @@ def test_create_property_table_no_propertyinstances(caplog):
     assert transformed_table.index.shape[0] == 0
     assert transformed_table.index.name == 'R1InstanceID'
     assert set(transformed_table.columns.tolist()) == set(['ID'])
-    assert "No property instanes found in property instances report part." in caplog.text
+    assert "No property instances found in property instances report part." in caplog.text
 
 def test_create_property_table_pivot_fails(caplog):
     """
@@ -94,7 +94,8 @@ def test_create_property_table_pivot_fails(caplog):
 
     with pytest.raises(ValueError):
         transformer._create_property_table(properties_df=properties, property_instances_df=propertyelements)
-    assert "Failed to pivot table, likely due to duplicates property names." in caplog.text
+    assert "Failed to pivot property instances. " in caplog.text
+    assert "Normalization may have created duplicate property names." in caplog.text
 
 def test_create_property_table_drops_undeclared_properties():
     properties = pd.DataFrame({'Property': ["ID"], 'PropertyID': ["1"]})
@@ -505,7 +506,7 @@ def test_transform_relations_table_returns_sql_safe_only():
     """
     pass
 
-MODULE_PATH = "src.processing.transformer"  # used below for monkeypatching _normalize_value
+MODULE_PATH = "relatics_extractor.processing.transformer"  # used below for monkeypatching _normalize_value
 
 
 @pytest.fixture(autouse=True)
@@ -527,7 +528,7 @@ def make_relations_df(rows):
     defaults = {"ChildR2Element": "", "ChildR2ElementID": ""}
     full_rows = [{**defaults, **row} for row in rows]
     return pd.DataFrame(full_rows, columns=[
-        "Relation", "Cardinality", "RelationID", "R2Element",
+        "R1Element", "Relation", "Cardinality", "RelationID", "R2Element",
         "R2ElementID", "ChildR2Element", "ChildR2ElementID",
     ])
 
@@ -549,9 +550,9 @@ def test_transform_relations_table_no_duplicate_names():
     duplicate R2Element values and no self-referencing relations.
     """
     relations_df = make_relations_df([
-        {"Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
+        {"R1Element": "Person", "Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
          "R2Element": "Car", "R2ElementID": 100},
-        {"Relation": "Drives", "Cardinality": "1:1", "RelationID": 2,
+        {"R1Element": "Person", "Relation": "Drives", "Cardinality": "1:1", "RelationID": 2,
          "R2Element": "Bike", "R2ElementID": 200},
     ])
     instances_df = make_instances_df([
@@ -666,3 +667,23 @@ def test_tranform_relations_table_children():
     assert "Vehicle" not in result_relations["R2Element"].values
     assert result_instances.loc[0, "R2Element"] == "Car"
 
+def test_transform_relations_table_self_ref():
+    """
+    Test whether self referencing relations (i.e. R1Element = R2Elemnt)
+    are renamed to {Relation}_{R2Element}.
+    """
+    relations_df = make_relations_df([
+        {"R1Element": "Person", "Relation": "Owns", "Cardinality": "1:N", "RelationID": 1,
+            "R2Element": "Person", "R2ElementID": 100}
+    ])
+    instances_df = make_instances_df([
+        {"R1Instance": "Alice", "R1InstanceID": 1, "RelationInstanceID": 1,
+            "R2Instance": "Chair", "R2InstanceID": 1000, "R2Element": "Person",
+            "R2ElementID": 100, "Cardinality": "1:N", "RelationID": 1,
+            "R1Element": "Person"}
+    ])
+
+    result_relations, result_instances = transformer._transform_relations_table(relations_df, instances_df)
+
+    assert set(result_relations["R2Element"]) == {"Owns_Person"}
+    assert set(result_instances["R2Element"]) == {"Owns_Person"}
