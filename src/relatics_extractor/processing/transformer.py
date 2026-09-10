@@ -28,8 +28,6 @@ CHILDR2ELEMENTID_COL = "ChildR2ElementID"
 R2INSTANCE_COL = "R2Instance"
 R2INSTANCEID_COL = "R2InstanceID"
 
-PROPERTY_RELATION = "heeft_property"
-
 DEFAULT_COLUMN_MAP = {
     R1INSTANCEID_COL: "guid",
     R1INSTANCE_COL: "naam",
@@ -41,7 +39,7 @@ DEFAULT_COLUMN_MAP = {
 def create_element_tables(
     tables: dict[str, pd.DataFrame],
     column_map: dict[str, str] = DEFAULT_COLUMN_MAP,
-    property_relations: list[str] | None = None,
+    inline_relations: list[str] | None = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Create the element table and associated link tables for an element.
@@ -53,7 +51,7 @@ def create_element_tables(
 
     Regular to-one relations are represented as <element>_guid
     columns containing the related R2 instance identifier. Relations
-    listed in property_relations are represented directly by their
+    listed in inline_relations are represented directly by their
     related R2 instance value.
 
     To-many relations are returned as separate link tables.
@@ -64,7 +62,7 @@ def create_element_tables(
             "Relations", "RelationInstances").
         column_map: Mapping used to rename the final element table's
             columns.
-        property_relations: Relation names of Relations to R2 Elements
+        inline_relations: Relation names of Relations to R2 Elements
             whose values will be materialized directly in the
             resulting element tables.
 
@@ -82,11 +80,15 @@ def create_element_tables(
     r1_element = _normalize_value(element_df[R1ELEMENT_COL][0])
 
     relations_df, relation_instances_df = _transform_relations_table(
-        relations_df, relation_instances_df
+        relations_df=relations_df, relation_instances_df=relation_instances_df
     )
-    property_table = _create_property_table(properties_df, property_instances_df)
+    property_table = _create_property_table(
+        properties_df=properties_df, property_instances_df=property_instances_df
+    )
     to_one_relations_table = _create_to_one_relations_table(
-        relations_df, relation_instances_df, property_relations
+        relations_df=relations_df,
+        relation_instances_df=relation_instances_df,
+        inline_relations=inline_relations,
     )
 
     sub_tables: list = [
@@ -238,7 +240,7 @@ def _create_property_table(
 def _create_to_one_relations_table(
     relations_df: pd.DataFrame,
     relation_instances_df: pd.DataFrame,
-    property_relations: list[str] | None = None,
+    inline_relations: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Create a table containing to-one relation data.
@@ -247,20 +249,20 @@ def _create_to_one_relations_table(
     <element>_guid column containing the related R2 instance
     id.
 
-    Relations listed in property_relations are represented by their
+    Relations listed in inline_relations are represented by their
     resolved value instead of an R2 instance id.
     """
-    property_relations = property_relations or []
-    if property_relations:
-        property_relations = [_normalize_value(value) for value in property_relations]
+    inline_relations = inline_relations or []
+    if inline_relations:
+        inline_relations = [_normalize_value(value) for value in inline_relations]
 
-    relations_one_df = _filter_cardinality(
+    all_relations_one_df = _filter_cardinality(
         df=relations_df,
         cardinality="one",
     )
 
-    relations_one_df = relations_one_df[
-        ~relations_one_df[RELATION_COL].isin(property_relations)
+    relations_one_df = all_relations_one_df[
+        ~all_relations_one_df[RELATION_COL].isin(inline_relations)
     ].copy()
 
     relation_instances_one_df = relation_instances_df[
@@ -283,26 +285,26 @@ def _create_to_one_relations_table(
         .rename_axis(columns=None)
     )
 
-    if not property_relations:
+    if not inline_relations:
         return to_one_relations_table
 
-    property_relations_df = relations_df[
-        relations_df[RELATION_COL].isin(property_relations)
+    inline_relations_df = all_relations_one_df[
+        all_relations_one_df[RELATION_COL].isin(inline_relations)
     ].copy()
 
-    property_relations_table = _create_property_relations_table(
-        property_relations_df=property_relations_df,
+    inline_relations_table = _create_inline_relations_table(
+        inline_relations_df=inline_relations_df,
         relation_instances_df=relation_instances_df,
     )
 
     return pd.concat(
-        [property_relations_table, to_one_relations_table],
+        [inline_relations_table, to_one_relations_table],
         axis=1,
     )
 
 
-def _create_property_relations_table(
-    property_relations_df: pd.DataFrame,
+def _create_inline_relations_table(
+    inline_relations_df: pd.DataFrame,
     relation_instances_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
@@ -311,16 +313,14 @@ def _create_property_relations_table(
     Each referenced property element becomes a column containing the
     related R2 instance value.
     """
-    property_relation_instances_df = relation_instances_df[
-        relation_instances_df[RELATIONID_COL].isin(
-            property_relations_df[RELATIONID_COL]
-        )
+    inline_relation_instances_df = relation_instances_df[
+        relation_instances_df[RELATIONID_COL].isin(inline_relations_df[RELATIONID_COL])
     ].copy()
 
-    property_columns = property_relations_df[R2ELEMENT_COL].tolist()
+    property_columns = inline_relations_df[R2ELEMENT_COL].tolist()
 
     return (
-        property_relation_instances_df.pivot(
+        inline_relation_instances_df.pivot(
             index=R1INSTANCEID_COL,
             columns=R2ELEMENT_COL,
             values=R2INSTANCE_COL,

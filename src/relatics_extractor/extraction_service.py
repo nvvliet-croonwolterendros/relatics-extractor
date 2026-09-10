@@ -12,13 +12,13 @@ from relatics_extractor.processing.validator import is_valid_schema, normalize_t
 logger = logging.getLogger(__name__)
 
 
-def extract_elements(
+def extract_element_tables(
     client: RelaticsClient,
-    workspace_config: dict[str, list[str]],
+    workspace_elements: dict[str, list[str]],
     operation: str,
     parallel: bool = False,
     max_workers: int | None = None,
-    property_relations: list[str] | None = None,
+    inline_relations: list[str] | None = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Extracts and transforms Relatics elements into normalized tables.
@@ -31,7 +31,7 @@ def extract_elements(
 
     Args:
         client: Configured Relatics API client.
-        workspace_config: Mapping of workspace IDs to lists of element IDs
+        workspace_elements: Mapping of workspace IDs to lists of element IDs
             that should be extracted.
         operation: Relatics operation name used to retrieve the
             element data.
@@ -40,9 +40,9 @@ def extract_elements(
         max_workers: Maximum number of worker threads used when
             run_parallel is True. If None, the ThreadPoolExecutor
             default is used.
-        property_relations: Relation names of Relations to R2 Elements
+        inline_relations: Relation names of Relations to R2 Elements
             whose values should be materialized directly in the
-            resulting element tables.
+            resulting element tables (must be to-one relations).
 
     Returns:
         Dictionary mapping table names to transformed pandas DataFrames.
@@ -53,7 +53,7 @@ def extract_elements(
     """
     jobs = [
         (workspace_id, element_id)
-        for workspace_id, element_ids in workspace_config.items()
+        for workspace_id, element_ids in workspace_elements.items()
         for element_id in element_ids
     ]
 
@@ -74,7 +74,7 @@ def extract_elements(
                     client=client,
                     workspace_id=workspace_id,
                     operation=operation,
-                    property_relations=property_relations,
+                    inline_relations=inline_relations,
                 ): (workspace_id, element_id)
                 for workspace_id, element_id in jobs
             }
@@ -101,7 +101,7 @@ def extract_elements(
                         client=client,
                         workspace_id=workspace_id,
                         operation=operation,
-                        property_relations=property_relations,
+                        inline_relations=inline_relations,
                     ),
                 )
             except Exception:
@@ -126,7 +126,7 @@ def _process_element(
     workspace_id: str,
     operation: str,
     schema: dict[str, dict] = SCHEMA,
-    property_relations: list[str] | None = None,
+    inline_relations: list[str] | None = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Processes a Relatics element with its first order relations and properties.
@@ -143,7 +143,7 @@ def _process_element(
     is_valid_schema(tables=tables, schema=schema)
     normalized_tables = normalize_tables(tables=tables, schema=schema)
     transformed_tables = create_element_tables(
-        tables=normalized_tables, property_relations=property_relations
+        tables=normalized_tables, inline_relations=inline_relations
     )
 
     for table in transformed_tables.values():

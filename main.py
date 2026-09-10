@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from relatics_extractor import RelaticsClient, extract_elements
+from relatics_extractor import RelaticsClient, extract_element_tables, parse_xml
 
 
 def _write_to_sqlite(
@@ -47,22 +47,35 @@ if __name__ == "__main__":
         configuration["environment"],
     )
 
-    workspace_config = {
-        "210b2918-b359-4892-a23b-bf96ad23d82f": [
-            "abdc7184-9b2e-e911-a2d5-00155d641103",
-            "aa982e98-7b2f-e911-a2d5-00155d641103",
-        ]
-    }
+    workspace_elements = {}
+
+    elements_root = client.get_request(
+        workspace_id="210b2918-b359-4892-a23b-bf96ad23d82f",
+        operation="dip_elements",
+    )
+
+    elements_df = parse_xml(elements_root, "Elements")
+
+    workspace_elements["210b2918-b359-4892-a23b-bf96ad23d82f"] = elements_df[
+        "ElementID"
+    ].tolist()
 
     operation = "dip_data_model_3"
 
-    tables = extract_elements(
+    tables = extract_element_tables(
         client=client,
-        workspace_config=workspace_config,
+        workspace_elements=workspace_elements,
         operation=operation,
         parallel=True,
         max_workers=None,
+        inline_relations=["Heeft property"],
     )
+
+    for key, table in tables.items():
+        for column in table.columns:
+            if column == "":
+                print(key)
+                print(table)
 
     db_dir = "data"
     db_path = "data/relatics.sqlite"
