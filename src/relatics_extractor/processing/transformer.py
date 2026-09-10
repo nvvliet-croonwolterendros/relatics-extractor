@@ -213,11 +213,6 @@ def _create_property_table(
         _normalize_value
     )
 
-    if not properties:
-        logger.warning("No properties found in properties report part.")
-    if property_instances_df.empty:
-        logger.warning("No property instances found in property instances report part.")
-
     try:
         return (
             property_instances_df.pivot(
@@ -273,7 +268,9 @@ def _create_to_one_relations_table(
         f"{element}_guid" for element in relations_one_df[R2ELEMENT_COL]
     ]
 
-    relation_instances_one_df[R2ELEMENT_COL] += "_guid"
+    relation_instances_one_df[R2ELEMENT_COL] = (
+        relation_instances_one_df[R2ELEMENT_COL].astype("string") + "_guid"
+    )
 
     to_one_relations_table = (
         relation_instances_one_df.pivot(

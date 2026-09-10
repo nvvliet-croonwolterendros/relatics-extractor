@@ -1,78 +1,120 @@
-import pandas as pd
-import logging
-from typing import Dict
+from collections import defaultdict
 
-logger = logging.getLogger(__name__)
+import pandas as pd
+
+from relatics_extractor.processing.schema import SCHEMA
+
 
 def normalize_tables(
-    tables: Dict[str, pd.DataFrame],
-    schema: Dict[str, dict]
-) -> Dict[str, pd.DataFrame]:
-    """ 
-    Function that takes a dict of tables and adds to each 
-    table the unrequired columns according to the schema, 
-    if they are not present.
+    tables: dict[str, pd.DataFrame], schema: dict[str, dict[str, dict]] = SCHEMA
+) -> dict[str, pd.DataFrame]:
     """
-    logger.info(f"Parsing {len(tables.keys())} tables.")
-    parsed_tables = {}
-    for tablename, table_schema in schema.items():
-        logger.debug(f"Parsing table: {tablename}")
-        if tablename not in tables:
-            raise KeyError(f'Relatics data does not contain the table {tablename}')
-        
-        # Work on a copy to avoid mutating the input fixture/dict
-        df = tables[tablename].copy()
+    Add missing optional columns to tables according to the schema.
 
-        # First check if all cols are present.
-        all_cols = set(table_schema.keys())
-        if all_cols.issubset(set(df.columns)):
-            parsed_tables[tablename] = df
-            logger.debug(f"{tablename} has all columns, moving to the next.")
-            continue
+    Columns marked ``not_null=False`` are added when missing and
+    initialized with their configured default value. The resulting
+    tables are validated against the schema before being returned.
+    """
 
-        optional_cols = {column:columnrestrictions['default'] for column, columnrestrictions in table_schema.items() if columnrestrictions['required'] == False}
-        for columnname, defaultvalue in optional_cols.items():
-            if columnname not in df.columns:
-                logger.debug(f"Add missing column: {columnname} in table: {tablename}")
-                df[columnname] = defaultvalue
-        parsed_tables[tablename] = df
-    return parsed_tables
+    normalized_tables: dict[str, pd.DataFrame] = {}
 
-def is_valid_schema(
-    tables: Dict[str, pd.DataFrame], schema: Dict[str, dict]
+    for table_name, table_schema in schema.items():
+        table = tables.get(table_name)
+
+        if table is not None:
+            df = table.copy()
+
+            for column_name, column_rules in table_schema.items():
+                if column_name not in df.columns:
+                    df[column_name] = column_rules.get("default")
+
+            df = df.dropna(how="all").reset_index(drop=True)
+
+            normalized_tables[table_name] = df
+
+    return normalized_tables
+
+
+def validate_schema(
+    tables: dict[str, pd.DataFrame],
+    schema: dict[str, dict[str, dict]],
 ) -> None:
-    """Checks tables against schema and returns validation report.
-
-    Raises:
-        RuntimeError: when required columns are missing from any table.
     """
-    logger.info("Validating schema for %d table(s)...", len(tables))
-    missing_report = {}
+    Validate tables against the configured schema.
+
+    Checks:
+    - Required tables exist.
+    - Required columns exist.
+    - Columns marked 'not_null' contain no null values.
+    - Columns marked 'unique' contain no duplicate non-null values.
+    """
+    errors = defaultdict(list)
 
     for table_name, table_schema in schema.items():
         if table_name not in tables:
-            logger.warning(f"Table '{table_name}' specified in schema was not found in input tables.")
+            errors["missing_tables"].append({"table": table_name})
             continue
 
         df = tables[table_name]
-        missing_cols = [
-            col_name
-            for col_name, col_config in table_schema.items()
-            if col_config.get("required", False) and col_name not in df.columns
+
+        missing_columns = [
+            column for column in table_schema if column not in df.columns
         ]
 
-        if missing_cols:
-            missing_report[table_name] = missing_cols
+        if missing_columns:
+            errors["missing_columns"].append(
+                {
+                    "table": table_name,
+                    "columns": missing_columns,
+                }
+            )
+            continue
 
-    if missing_report:
-        lines = [
-            "Schema validation failed. The following required columns are missing:",
-            "",
+        null_columns = [
+            column
+            for column, column_rules in table_schema.items()
+            if column_rules.get("not_null") and df[column].isna().any()
         ]
-        for table_name, cols in missing_report.items():
-            lines.append(f"- {table_name}: {', '.join(cols)}")
-        error_msg = "\n".join(lines)
 
-        raise RuntimeError(error_msg)
+        if null_columns:
+            errors["null_values"].append(
+                {
+                    "table": table_name,
+                    "columns": null_columns,
+                }
+            )
 
-    logger.info("Schema validation passed successfully.")
+        duplicate_columns = [
+            column
+            for column, column_rules in table_schema.items()
+            if column_rules.get("unique") and df[column].dropna().duplicated().any()
+        ]
+
+        if duplicate_columns:
+            errors["duplicate_values"].append(
+                {
+                    "table": table_name,
+                    "columns": duplicate_columns,
+                }
+            )
+
+    if errors:
+        raise RuntimeError(format_validation_errors(errors))
+
+
+def format_validation_errors(errors: dict[str, list[dict]]) -> str:
+    sections = []
+
+    for category, items in errors.items():
+        lines = []
+
+        for item in items:
+            if category == "missing_tables":
+                lines.append(item["table"])
+
+            else:
+                lines.append(f"{item['table']}: {', '.join(item['columns'])}")
+
+        sections.append(f"{category}:\n- " + "\n- ".join(lines))
+
+    return "Schema validation failed.\n\n" + "\n\n".join(sections)

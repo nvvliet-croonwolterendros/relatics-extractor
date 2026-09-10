@@ -7,7 +7,7 @@ from relatics_extractor.ingestion.relatics_client import RelaticsClient
 from relatics_extractor.ingestion.xml_parser import parse_xml
 from relatics_extractor.processing.schema import SCHEMA
 from relatics_extractor.processing.transformer import create_element_tables
-from relatics_extractor.processing.validator import is_valid_schema, normalize_tables
+from relatics_extractor.processing.validator import normalize_tables, validate_schema
 
 logger = logging.getLogger(__name__)
 
@@ -140,8 +140,8 @@ def _process_element(
     )
 
     tables = {table_name: parse_xml(element_data, table_name) for table_name in schema}
-    is_valid_schema(tables=tables, schema=schema)
     normalized_tables = normalize_tables(tables=tables, schema=schema)
+    validate_schema(tables=normalized_tables, schema=schema)
     transformed_tables = create_element_tables(
         tables=normalized_tables, inline_relations=inline_relations
     )

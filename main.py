@@ -66,7 +66,7 @@ if __name__ == "__main__":
         client=client,
         workspace_elements=workspace_elements,
         operation=operation,
-        parallel=True,
+        parallel=False,
         max_workers=None,
         inline_relations=["Heeft property"],
     )
