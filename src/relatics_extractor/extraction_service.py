@@ -18,6 +18,7 @@ def extract_elements(
     operation: str,
     parallel: bool = False,
     max_workers: int | None = None,
+    property_relations: list[str] | None = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Extracts and transforms Relatics elements into normalized tables.
@@ -39,13 +40,16 @@ def extract_elements(
         max_workers: Maximum number of worker threads used when
             run_parallel is True. If None, the ThreadPoolExecutor
             default is used.
+        property_relations: Relation names of Relations to R2 Elements
+            whose values should be materialized directly in the
+            resulting element tables.
 
     Returns:
         Dictionary mapping table names to transformed pandas DataFrames.
 
     Raises:
-        Exception: Propagates exceptions raised during extraction,
-            validation or tranformation.
+        Exception: Any exception raised during retrieval, validation,
+            normalization, or transformation of element data.
     """
     jobs = [
         (workspace_id, element_id)
@@ -70,6 +74,7 @@ def extract_elements(
                     client=client,
                     workspace_id=workspace_id,
                     operation=operation,
+                    property_relations=property_relations,
                 ): (workspace_id, element_id)
                 for workspace_id, element_id in jobs
             }
@@ -96,6 +101,7 @@ def extract_elements(
                         client=client,
                         workspace_id=workspace_id,
                         operation=operation,
+                        property_relations=property_relations,
                     ),
                 )
             except Exception:
@@ -120,6 +126,7 @@ def _process_element(
     workspace_id: str,
     operation: str,
     schema: dict[str, dict] = SCHEMA,
+    property_relations: list[str] | None = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Processes a Relatics element with its first order relations and properties.
@@ -135,7 +142,9 @@ def _process_element(
     tables = {table_name: parse_xml(element_data, table_name) for table_name in schema}
     is_valid_schema(tables=tables, schema=schema)
     normalized_tables = normalize_tables(tables=tables, schema=schema)
-    transformed_tables = create_element_tables(tables=normalized_tables)
+    transformed_tables = create_element_tables(
+        tables=normalized_tables, property_relations=property_relations
+    )
 
     for table in transformed_tables.values():
         table["workspace_id"] = workspace_id
