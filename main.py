@@ -51,14 +51,17 @@ if __name__ == "__main__":
         "210b2918-b359-4892-a23b-bf96ad23d82f": [
             "abdc7184-9b2e-e911-a2d5-00155d641103",
             "aa982e98-7b2f-e911-a2d5-00155d641103",
-            "test_element_id",
         ]
     }
 
     operation = "dip_data_model_3"
 
     tables = extract_elements(
-        client=client, workspace_config=workspace_config, operation=operation
+        client=client,
+        workspace_config=workspace_config,
+        operation=operation,
+        parallel=True,
+        max_workers=None,
     )
 
     db_dir = "data"

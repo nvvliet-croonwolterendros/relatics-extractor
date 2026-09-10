@@ -16,7 +16,8 @@ def extract_elements(
     client: RelaticsClient,
     workspace_config: dict[str, list[str]],
     operation: str,
-    run_parallel: bool = False,
+    parallel: bool = False,
+    max_workers: int | None = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Extracts and transforms Relatics elements into normalized tables.
@@ -33,26 +34,35 @@ def extract_elements(
             that should be extracted.
         operation: Relatics operation name used to retrieve the
             element data.
-        run_parallel: Whether element extraction should be executed in
+        parallel: Whether element extraction should be executed in
             parallel.
+        max_workers: Maximum number of worker threads used when
+            run_parallel is True. If None, the ThreadPoolExecutor
+            default is used.
 
     Returns:
         Dictionary mapping table names to transformed pandas DataFrames.
 
     Raises:
         Exception: Propagates exceptions raised during extraction,
-            transformation, or validation.
+            validation or tranformation.
     """
-    tables = {}
-
     jobs = [
         (workspace_id, element_id)
         for workspace_id, element_ids in workspace_config.items()
         for element_id in element_ids
     ]
 
-    if run_parallel:
-        with ThreadPoolExecutor() as executor:
+    logger.info(
+        "Starting extraction for %s elements (parallel=%s)",
+        len(jobs),
+        parallel,
+    )
+
+    tables: dict[str, pd.DataFrame] = {}
+
+    if parallel:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_map = {
                 executor.submit(
                     _process_element,
@@ -60,7 +70,6 @@ def extract_elements(
                     client=client,
                     workspace_id=workspace_id,
                     operation=operation,
-                    schema=SCHEMA,
                 ): (workspace_id, element_id)
                 for workspace_id, element_id in jobs
             }
@@ -87,7 +96,6 @@ def extract_elements(
                         client=client,
                         workspace_id=workspace_id,
                         operation=operation,
-                        schema=SCHEMA,
                     ),
                 )
             except Exception:
@@ -97,6 +105,11 @@ def extract_elements(
                     element_id,
                 )
                 raise
+
+    logger.info(
+        "Extraction completed successfully. Generated %s tables.",
+        len(tables),
+    )
 
     return tables
 
