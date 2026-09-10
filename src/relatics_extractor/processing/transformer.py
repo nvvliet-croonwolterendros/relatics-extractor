@@ -40,7 +40,6 @@ DEFAULT_COLUMN_MAP = {
 
 def create_element_tables(
     tables: dict[str, pd.DataFrame],
-    r1_element: str,
     column_map: dict[str, str] = DEFAULT_COLUMN_MAP,
 ) -> dict[str, pd.DataFrame]:
     """
@@ -63,13 +62,14 @@ def create_element_tables(
         Mapping of table names to DataFrames containing the element table
         and any associated link tables.
     """
-    r1_element = _normalize_value(r1_element)
-
+    element_df = tables["Element"].copy()
     element_instances_df = tables["ElementInstances"].copy()
     properties_df = tables["Properties"].copy()
     property_instances_df = tables["PropertyInstances"].copy()
     relations_df = tables["Relations"].copy()
     relation_instances_df = tables["RelationInstances"].copy()
+
+    r1_element = _normalize_value(element_df[R1ELEMENT_COL][0])
 
     relations_df, relation_instances_df = _transform_relations_table(
         relations_df, relation_instances_df
