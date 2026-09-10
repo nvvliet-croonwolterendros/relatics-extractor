@@ -15,10 +15,11 @@ logger = logging.getLogger(__name__)
 def extract_elements(
     client: RelaticsClient,
     workspace_config: dict[str, list[str]],
-    opertation: str,
+    operation: str,
     run_parallel: bool = False,
 ) -> dict[str, pd.DataFrame]:
-    """Extracts and transforms Relatics elements into normalized tables.
+    """
+    Extracts and transforms Relatics elements into normalized tables.
 
     For each configured workspace and element combination, retrieves the
     corresponding Relatics XML payload, validates the extracted schema,
@@ -52,32 +53,50 @@ def extract_elements(
 
     if run_parallel:
         with ThreadPoolExecutor() as executor:
-            futures = [
+            future_map = {
                 executor.submit(
                     _process_element,
                     element_id=element_id,
                     client=client,
                     workspace_id=workspace_id,
-                    operation=opertation,
+                    operation=operation,
                     schema=SCHEMA,
-                )
+                ): (workspace_id, element_id)
                 for workspace_id, element_id in jobs
-            ]
+            }
 
-            for future in as_completed(futures):
-                _merge_tables(tables, future.result())
+            for future in as_completed(future_map):
+                workspace_id, element_id = future_map[future]
+
+                try:
+                    _merge_tables(tables, future.result())
+                except Exception:
+                    logger.exception(
+                        "Failed processing workspace_id=%s element_id=%s",
+                        workspace_id,
+                        element_id,
+                    )
+                    raise
     else:
         for workspace_id, element_id in jobs:
-            _merge_tables(
-                tables,
-                _process_element(
-                    element_id=element_id,
-                    client=client,
-                    workspace_id=workspace_id,
-                    operation=opertation,
-                    schema=SCHEMA,
-                ),
-            )
+            try:
+                _merge_tables(
+                    tables,
+                    _process_element(
+                        element_id=element_id,
+                        client=client,
+                        workspace_id=workspace_id,
+                        operation=operation,
+                        schema=SCHEMA,
+                    ),
+                )
+            except Exception:
+                logger.exception(
+                    "Failed processing workspace_id=%s element_id=%s",
+                    workspace_id,
+                    element_id,
+                )
+                raise
 
     return tables
 
