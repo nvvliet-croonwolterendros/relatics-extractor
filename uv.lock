@@ -620,33 +620,35 @@ name = "relatics-toolkit"
 version = "1.0.1"
 source = { editable = "." }
 dependencies = [
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extra = ["python"] },
     { name = "pandas" },
     { name = "pyarrow" },
-    { name = "pytest" },
-    { name = "pytest-mock" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "mkdocstrings", extra = ["python"] },
+    { name = "pytest" },
+    { name = "pytest-mock" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "mkdocs", specifier = ">=1.6.1" },
-    { name = "mkdocs-material", specifier = ">=9.7.7" },
-    { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.6" },
     { name = "pandas", specifier = ">=3.0.3" },
     { name = "pyarrow", specifier = ">=25.0.1" },
-    { name = "pytest", specifier = ">=9.1.1" },
-    { name = "pytest-mock", specifier = ">=3.15.1" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "ruff", specifier = ">=0.16.6" }]
+dev = [
+    { name = "mkdocs", specifier = ">=1.6.1" },
+    { name = "mkdocs-material", specifier = ">=9.7.7" },
+    { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.6" },
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "pytest-mock", specifier = ">=3.15.1" },
+    { name = "ruff", specifier = ">=0.16.6" },
+]
 
 [[package]]
 name = "requests"
