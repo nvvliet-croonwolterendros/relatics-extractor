@@ -1,10 +1,10 @@
-# Relatics Connector
+# Relatics Toolkit
 
-Welcome to the Relatics Connector documentation. This package provides a comprehensive solution for extracting, parsing, and transforming data from Relatics, enabling seamless integration with downstream applications and database storage.
+Welcome to the Relatics Toolkit documentation. This package provides a comprehensive solution for extracting, parsing, and transforming data from Relatics, enabling seamless integration with downstream applications and database storage.
 
 ## Overview
 
-The Relatics Connector is designed to simplify interactions with the Relatics DataExchange API, offering:
+The Relatics Toolkit is designed to simplify interactions with the Relatics DataExchange API, offering:
 
 - **Authentication**: OAuth 2.0 token-based authentication support
 - **Data Extraction**: Flexible extraction methods for various data types
@@ -15,7 +15,7 @@ The Relatics Connector is designed to simplify interactions with the Relatics Da
 
 ### Data Extraction Methods
 
-The connector supports two main use cases:
+The extractor supports two main use cases:
 
 1. **Single Report Part Extraction**
 2. **Complete ETL Pipeline**
