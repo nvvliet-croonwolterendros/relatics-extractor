@@ -1,22 +1,22 @@
 [project]
 name = "relatics-toolkit"
-version = "1.0.1"
+version = "1.0.3"
 description = "A package that enables fast and easy ETL processing of a Relatics workspace."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "mkdocs>=1.6.1",
-    "mkdocs-material>=9.7.7",
-    "mkdocstrings[python]>=1.0.6",
     "pandas>=3.0.3",
-    "pyarrow>=25.0.1",
-    "pytest>=9.1.1",
-    "pytest-mock>=3.15.1",
+    "requests>=2.34.2",
 ]
 
 [dependency-groups]
 dev = [
     "ruff>=0.16.6",
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.7",
+    "mkdocstrings[python]>=1.0.6",
+    "pytest>=9.1.1",
+    "pytest-mock>=3.15.1",
 ]
 
 [tool.pytest.ini_options]
