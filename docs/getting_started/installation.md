@@ -1,11 +1,11 @@
 # Installation
 
-Install the package using pip or uv.
+Install the package using uv of pip.
 
 ```
-uv add relatics_connector
+uv add relatics-toolkit
 ```
 
 ```
-pip install relatics_connector
+pip install relatics-toolkit
 ```

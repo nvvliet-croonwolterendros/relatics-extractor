@@ -1,7 +1,7 @@
 # Setting up the right Relatics report and webservice.
 ## Introduction
 
-In order to make the ETL process work a very specific relatics report and webservice needs to be setup. This webservice will be used by the `relatics_conenctor.Extractor` in order to produce the full extraction.
+In order to make the ETL process work a very specific relatics report and webservice needs to be setup. This webservice will be used by the `relatics_toolkit.extract_element_tables` in order to produce the full extraction.
 
 The ETL pipeline will do the following:
 
@@ -12,7 +12,7 @@ If a **requirement** element has a :n relation with the **Issue** element. The l
 - Combine all these tables into a dictionary and return it.
 
 !!! danger "Warning!"
-    Don't skip any steps in this setup. Copy names and query patterns exactly. The `run_ETL` method has some flexibility in report part naming, however the naming of the query values is very important to match this guide.
+    Don't skip any steps in this setup. Copy names and query patterns exactly. The `extract_element_tables` method has no flexibility in report part naming and the naming of the query values should therefore match this guide.
     If multiple workspaces are to be extracted in the same run ensure that the names of all the reports mentioned below are the same.
 
 !!! tip
@@ -23,32 +23,8 @@ The report in relatics needs to be the following structure:
 
 ![Report structure](assets/report_structure.png)
 
-This is the only part where you can change a name. The report part which contains all elements to export is defaulted to `Elements`. If you so desire you can modify this name and pass it as an parameter in the `run_etl` method.
+This is the only part where you can change a name. The report part which contains all elements to export is defaulted to `Elements`. If you so desire you can modify this name and pass it as an parameter in the `extract_element_tables` method.
 Next we will go more in depth of the individual report parts needed for the connector.
-
-### Element retrieval
-
-This section will explain how to setup a report that returns a list of elements with their ConfigurationOfRef for extraction. Each time you want to add a Relatics element to be extracted you create a new instance of the element explained below and add the name and ConfigurationOfRef of the desired, to be extracted, element. This way you build up a list of elements the extractor can use to loop over.
-
-#### Element ConfigurationOfRefs
-![Elements report](assets/elements.png)
-
-In order to make it easier to change which elements are retrieved in each workspace, a new Relatics element is created. This element has as the Instance name the name of the elemet to be included in extraction, e.g. `requirement`. The description is populated with the `ConfigurationOfRef` of this element. This way you can easily extend or reduce the list of elements included in the ETL pipeline.
-
-The query you need is:
-
-![element query](assets/element_query.png)
-
-Node details of `Element` is:
-
-![element query node details](assets/report_query_details.png)
-
-Ensure you replace the `ConfigurationOfRef` in the constraint with your ConfigurationOfRef of the Relatics element that will hold the information of which elements to extract. A new page can now be made for this element in the Relatics environment with a table like this:
-
-| Element (name) | ConfigurationOfRef (description) |
-|---|---|
-|requirement|123-abc-456|
-|Issue|789-cde-123|
 
 ### Data extraction report
 With the ConfigurationOfRef list obtained by the process above we can start looping over their ConfigurationOfRefs. The report that is shown below will get all the requried data for one Relatics element. Then, using this information, the extractor will produce the element tables (with the information for each element. e.g. name and discription. And all relations with a :1 cardinality) and all the link tables (the relation to elements with a :n cardinality).

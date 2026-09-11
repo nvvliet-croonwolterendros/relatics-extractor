@@ -4,7 +4,7 @@ Overview of the `RelaticsClient` class and associated custom exceptions for inte
 
 ## Client
 
-::: relatics_connector.RelaticsClient
+::: relatics_toolkit.RelaticsClient
     options:
       show_root_heading: true
       show_source: true
@@ -13,17 +13,17 @@ Overview of the `RelaticsClient` class and associated custom exceptions for inte
 
 ## Exceptions
 
-::: relatics_connector.ingestion.relatics_client.TokenRequestError
+::: relatics_toolkit.ingestion.relatics_client.TokenRequestError
     options:
       show_root_heading: true
       heading_level: 3
 
-::: relatics_connector.ingestion.relatics_client.APIRequestError
+::: relatics_toolkit.ingestion.relatics_client.APIRequestError
     options:
       show_root_heading: true
       heading_level: 3
 
-::: relatics_connector.ingestion.relatics_client.XMLParseError
+::: relatics_toolkit.ingestion.relatics_client.XMLParseError
     options:
       show_root_heading: true
       heading_level: 3

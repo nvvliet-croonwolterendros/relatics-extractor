@@ -1,4 +1,5 @@
 # Relatics Extractor
+[![Tests](https://github.com/nvvliet-croonwolterendros/relatics-extractor/actions/workflows/test.yml/badge.svg)](https://github.com/nvvliet-croonwolterendros/relatics-extractor/actions/workflows/test.yml)
 
 A Python package for extracting, parsing, and transforming data from Relatics (a requirements management tool) into database-ready pandas DataFrames.
 
@@ -17,6 +18,10 @@ The Relatics Extractor is designed to streamline the process of extracting data 
   - :n (many-to-one) relations become link tables
 - **Multithreading Support**: Uses ThreadPoolExecutor for faster processing of multiple elements
 - **Error Handling**: Robust error handling with logging and failure tracking
+
+## Documentation
+
+Documentation can be found [here](https://nvvliet-croonwolterendros.github.io/relatics-extractor/)
 
 ## Installation
 
