@@ -1,6 +1,6 @@
 [project]
 name = "relatics-toolkit"
-version = "1.0.1"
+version = "1.0.2"
 description = "A package that enables fast and easy ETL processing of a Relatics workspace."
 readme = "README.md"
 requires-python = ">=3.14"
