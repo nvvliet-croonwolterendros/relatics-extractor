@@ -11,7 +11,7 @@ def normalize_tables(
     """
     Add missing optional columns to tables according to the schema.
 
-    Columns marked ``not_null=False`` are added when missing and
+    Columns marked 'not_null=False' are added when missing and
     initialized with their configured default value. The resulting
     tables are validated against the schema before being returned.
     """
