@@ -1,6 +1,6 @@
 # Installation
 
-Install the package using pip or uv.
+Install the package using uv of pip.
 
 ```
 uv add relatics-toolkit
