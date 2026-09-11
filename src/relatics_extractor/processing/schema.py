@@ -1,42 +1,38 @@
 SCHEMA = {
-    # "Element": {
-    #     "R1Element": {"required": True}, # At least one R1Element should be present with its ID otherwise there's nothing to do in the ETL.
-    #     "R1ElementID": {"required": True}
-    # }, # Pretty much all of the other tables are not required as they can potentially be empty without the mptyness itself being a problem
+    "Element": {
+        "R1ElementID": {"not_null": True, "unique": True},
+        "R1Element": {"not_null": True, "unique": True},
+    },
     "ElementInstances": {
-        "R1Instance": {"required": False, "default": None},
-        "R1InstanceID": {"required": False, "default": None},
-        "R1InstanceDescription": {"required": False, "default": None},
-        "R1InstanceRichText": {"required": False, "default": None}
+        "R1InstanceID": {"not_null": True, "unique": True},
+        "R1Instance": {"not_null": True, "unique": False},
+        "R1InstanceDescription": {"not_null": False, "unique": False, "default": None},
+        "R1InstanceRichText": {"not_null": False, "unique": False, "default": None},
     },
     "Properties": {
-        "Property": {"required": False, "default": None},
-        "PropertyID": {"required": False, "default": None}
+        "Property": {"not_null": True, "unique": True},
     },
     "PropertyInstances": {
-        "R1InstanceID": {"required": False, "default": None},
-        "PropertyInstance": {"required": False, "default": None},
-        "Property": {"required": False, "default": None}
-    },
-    "RelationInstances": {
-        "R1Instance": {"required": False, "default": None},
-        "R1InstanceID": {"required": False, "default": None},
-        "R1Element": {"required": False, "default": None},
-        "RelationInstanceID": {"required": False, "default": None},
-        "RelationID": {"required": False, "default": None},
-        "Cardinality": {"required": False, "default": None},
-        "R2Instance": {"required": False, "default": None},
-        "R2InstanceID": {"required": False, "default": None},
-        "R2Element": {"required": False, "default": None},
-        "R2ElementID": {"required": False, "default": None}
+        "R1InstanceID": {"not_null": True, "unique": False},
+        "Property": {"not_null": True, "unique": False},
+        "PropertyInstance": {"not_null": False, "unique": False},
     },
     "Relations": {
-        "Relation": {"required": False, "default": None},
-        "RelationID": {"required": False, "default": None},
-        "Cardinality": {"required": False, "default": None},
-        "R2Element": {"required": False, "default": None},
-        "R2ElementID": {"required": False, "default": None},
-        "ChildR2Element": {"required": False, "default": None},
-        "ChildR2ElementID": {"required": False, "default": None}
-    }
+        "RelationID": {"not_null": True, "unique": False},
+        "Relation": {"not_null": True, "unique": False},
+        "Cardinality": {"not_null": False, "unique": False},
+        "R1Element": {"not_null": True, "unique": False},
+        "R2ElementID": {"not_null": True, "unique": False},
+        "R2Element": {"not_null": True, "unique": False},
+        "ChildR2ElementID": {"not_null": False, "unique": False, "default": None},
+        "ChildR2Element": {"not_null": False, "unique": False, "default": None},
+    },
+    "RelationInstances": {
+        "RelationID": {"not_null": True, "unique": False},
+        "Cardinality": {"not_null": False, "unique": False},
+        "R1InstanceID": {"not_null": True, "unique": False},
+        "R2Element": {"not_null": True, "unique": False},
+        "R2InstanceID": {"not_null": True, "unique": False},
+        "R2Instance": {"not_null": True, "unique": False},
+    },
 }
