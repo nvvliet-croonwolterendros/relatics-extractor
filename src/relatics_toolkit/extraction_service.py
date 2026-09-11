@@ -3,11 +3,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
 
-from relatics_extractor.ingestion.relatics_client import RelaticsClient
-from relatics_extractor.ingestion.xml_parser import parse_xml
-from relatics_extractor.processing.schema import SCHEMA
-from relatics_extractor.processing.transformer import create_element_tables
-from relatics_extractor.processing.validator import normalize_tables, validate_schema
+from relatics_toolkit.ingestion.relatics_client import RelaticsClient
+from relatics_toolkit.ingestion.xml_parser import parse_xml
+from relatics_toolkit.processing.schema import SCHEMA
+from relatics_toolkit.processing.transformer import create_element_tables
+from relatics_toolkit.processing.validator import normalize_tables, validate_schema
 
 logger = logging.getLogger(__name__)
 

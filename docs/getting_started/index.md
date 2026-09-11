@@ -15,7 +15,7 @@ This package supports two main use cases:
 In order to do single report part extraction and transformation using this package the following code can be used:
 
 ```python
-from relatics_extractor import RelaticsClient, parse_xml
+from relatics_toolkit import RelaticsClient, parse_xml
 
 # Retrieve XML from relatics webservice
 client = RelaticsClient(client_id, client_secret, environment)

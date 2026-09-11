@@ -6,7 +6,7 @@ In order to cleanly extract these tables the `report part` should be specified. 
 
 ## Overview
 
-::: relatics_extractor.parse_xml
+::: relatics_toolkit.parse_xml
     options:
       show_root_heading: true
       show_source: true

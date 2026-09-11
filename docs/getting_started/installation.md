@@ -3,9 +3,9 @@
 Install the package using pip or uv.
 
 ```
-uv add relatics-extractor
+uv add relatics-toolkit
 ```
 
 ```
-pip install relatics-extractor
+pip install relatics-toolkit
 ```

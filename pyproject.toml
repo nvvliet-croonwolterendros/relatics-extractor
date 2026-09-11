@@ -1,5 +1,5 @@
 [project]
-name = "relatics-extractor"
+name = "relatics-toolkit"
 version = "0.2.2"
 description = "A package that enables fast and easy ETL processing of a Relatics workspace."
 readme = "README.md"

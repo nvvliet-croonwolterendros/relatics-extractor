@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import pandas as pd
 
-from relatics_extractor.processing.schema import SCHEMA
+from relatics_toolkit.processing.schema import SCHEMA
 
 
 def normalize_tables(
