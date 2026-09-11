@@ -1,6 +1,9 @@
 import requests
 import xml.etree.ElementTree as ET
 from typing import Dict, Tuple
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TokenRequestError(Exception):
     """Raised when token retrieval fails."""
@@ -12,7 +15,18 @@ class XMLParseError(Exception):
     """Raised when XML parsing fails."""
 
 class RelaticsClient:
-    """Client for making OAuth2 get requests to relatics."""
+    """Client for making OAuth2 get requests to relatics.
+    
+    Client for making requests to relatics webservices. Will automatically request a token and subsequently do a get request to a webservice.
+
+    Args:
+        client_id (str): the OAUTH client id obtained from the Relatics environment studio.
+        client_secret (str): the OAUTH client secret obtained from the Relatics environment studio.
+        environment (str): The subdomain of relaticonline. in https://example.relaticsonline.com, example is the environment string.
+
+    Returns:
+        RelaticsClient (RelaticsClient): Class capable of doing get requests to webservices in the specified environment.
+    """
     
     def __init__(self, client_id: str, client_secret: str, environment: str) -> None:
         self.client_id = client_id
@@ -29,7 +43,7 @@ class RelaticsClient:
             parameters: Query parameters
 
         Returns:
-            Parsed XML root element
+            result: Parsed XML root element
         """
         api_endpoint = f"https://{self.environment}.relaticsonline.com/DataExchange/{workspace_id}/{operation}"
         

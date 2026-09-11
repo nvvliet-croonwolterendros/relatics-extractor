@@ -4,11 +4,23 @@ import itertools
 import xml.etree.ElementTree as ET
 
 def parse_xml(root:ET.Element, report_part:str) -> pd.DataFrame:
+    """Function to convert a relatics report part into a pandas DataFrame.
+
+    Relatics report parts can be deeply nested, this function recusively unpacks the XML and returns a single DataFrame.
+
+    Args:
+        root (xml.etree.ElementTree): The complete xml.etree.ElementTree xml as obtained from the relatics webservice. Can be easily obtained from the RelaticsClient.
+        report_part: Specific report part to unpack into a pandas dataframe.
+
+    Returns:
+        df: An unpacked pandas DataFrame of a specific report part.
+
+    """
     start_element = root.find(report_part)
     
     nested_rows = []
     
-    if start_element:
+    if start_element is not None:
         nested_rows.append(_parse_xml_to_dict(start_element=start_element))
         
     unpacked_rows = []
